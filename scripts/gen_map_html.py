@@ -552,7 +552,8 @@ const MILES_PER_DEG_LAT = 69.0;
 const MAX_DODGE_MILES = 20; // cap on how far collision-avoidance may nudge a site from its true location
 const NICE_MILES = [1,2,5,10,15,20,25,50,75,100,150,200,250,300,500,750,1000,1500,2000,3000];
 const MIN_VB_FRAC = 0.05; // deepest manual zoom: 5% of the full map width
-const DOT_SHRINK_EXP = 0.65; // how aggressively dots shrink as you zoom in (0 = never shrink, 1 = constant screen size)
+const DOT_MIN_FRAC = 0.32;   // dot size at full zoom-out, as a fraction of its full (score-based) size
+const DOT_FULL_ZOOM = 8;     // zoom level at which dots reach 100% size and stop growing further
 let currentZoom = null;
 let vbAnim = null;
 
@@ -652,9 +653,10 @@ function updateScaleBar() {
   scaleBarLabel.textContent = nice + ' mi';
 }
 function radiusPxFor(score, zoomLevel) {
-  const base = radiusFor(score); // target screen px at full-map zoom (zoomLevel 1)
-  const shrunk = base / Math.pow(Math.max(zoomLevel, 1), DOT_SHRINK_EXP);
-  return Math.max(shrunk, 2.5);
+  const base = radiusFor(score); // full (100%) screen-px size, reached at DOT_FULL_ZOOM and beyond
+  const t = Math.min(1, Math.max(0, (zoomLevel - 1) / (DOT_FULL_ZOOM - 1)));
+  const frac = DOT_MIN_FRAC + (1 - DOT_MIN_FRAC) * t;
+  return Math.max(base * frac, 2);
 }
 function updateDotSizes() {
   const vb = getViewBox();

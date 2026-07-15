@@ -484,22 +484,26 @@ function render() {
   dotsG.innerHTML = '';
   const filtered = DATA.sites.filter(matchesFilters);
   filtered.forEach(s => {
-    const [x,y] = proj(s.lon, s.lat);
+    const [bx, by] = proj(s.lon, s.lat);
     const color = DATA.states[s.state].dark;
     const scoreAttr = s.score != null ? s.score : '';
 
+    // Grouped so the collision-avoidance pass can move dot+hit together via
+    // one transform, independent of the dot's true (bx,by) anchor position.
+    const g = document.createElementNS(ns, 'g');
+    g.dataset.bx = bx; g.dataset.by = by; g.dataset.score = scoreAttr;
+    g.setAttribute('transform', `translate(${bx},${by})`);
+
     const dot = document.createElementNS(ns, 'circle');
-    dot.setAttribute('cx', x); dot.setAttribute('cy', y);
-    dot.dataset.score = scoreAttr;
+    dot.setAttribute('cx', 0); dot.setAttribute('cy', 0);
     dot.setAttribute('fill', color);
     dot.setAttribute('stroke', '#fff'); dot.setAttribute('stroke-width', '1.3');
     dot.setAttribute('fill-opacity', '0.85'); dot.setAttribute('stroke-opacity', '0.8');
     dot.setAttribute('class', 'dot');
-    dotsG.appendChild(dot);
+    g.appendChild(dot);
 
     const hit = document.createElementNS(ns, 'circle');
-    hit.setAttribute('cx', x); hit.setAttribute('cy', y);
-    hit.dataset.score = scoreAttr;
+    hit.setAttribute('cx', 0); hit.setAttribute('cy', 0);
     hit.setAttribute('class', 'dot-hit');
     hit.tabIndex = 0;
     hit.addEventListener('mouseenter', (e) => showHoverTip(e, s));
@@ -508,9 +512,12 @@ function render() {
     hit.addEventListener('click', () => pinSite(s));
     hit.addEventListener('focus', (e) => showHoverTip(e, s));
     hit.addEventListener('blur', hideHoverTip);
-    dotsG.appendChild(hit);
+    g.appendChild(hit);
+
+    dotsG.appendChild(g);
   });
   updateDotSizes();
+  scheduleDodge();
 
   updateStats(filtered.length);
 }
@@ -521,6 +528,7 @@ const zoomLabel = document.getElementById('zoomLabel');
 const scaleBarLine = document.getElementById('scaleBarLine');
 const scaleBarLabel = document.getElementById('scaleBarLabel');
 const MILES_PER_DEG_LAT = 69.0;
+const MAX_DODGE_MILES = 20; // cap on how far collision-avoidance may nudge a site from its true location
 const NICE_MILES = [1,2,5,10,15,20,25,50,75,100,150,200,250,300,500,750,1000,1500,2000,3000];
 const MIN_VB_FRAC = 0.05; // deepest manual zoom: 5% of the full map width
 const DOT_SHRINK_EXP = 0.65; // how aggressively dots shrink as you zoom in (0 = never shrink, 1 = constant screen size)
@@ -567,7 +575,12 @@ function animateViewBox(target, duration) {
     const cur = start.map((v, i) => v + (target[i] - v) * e);
     setViewBox(cur[0], cur[1], cur[2], cur[3]);
     onViewportChange();
-    vbAnim = t < 1 ? requestAnimationFrame(frame) : null;
+    if (t < 1) {
+      vbAnim = requestAnimationFrame(frame);
+    } else {
+      vbAnim = null;
+      updateDotDodge(); // re-settle at the final zoom level, not mid-animation
+    }
   }
   vbAnim = requestAnimationFrame(frame);
 }
@@ -628,14 +641,80 @@ function updateDotSizes() {
   if (!rect.width || !vb[2]) return;
   const pxPerUnit = rect.width / vb[2];
   const zoomLevel = VB_W / vb[2];
-  dotsG.querySelectorAll('.dot').forEach(dot => {
-    const score = dot.dataset.score !== '' ? +dot.dataset.score : null;
-    dot.setAttribute('r', (radiusPxFor(score, zoomLevel) / pxPerUnit).toFixed(3));
+  dotsG.querySelectorAll('g').forEach(g => {
+    const score = g.dataset.score !== '' ? +g.dataset.score : null;
+    const rSvg = radiusPxFor(score, zoomLevel) / pxPerUnit;
+    g.querySelector('.dot').setAttribute('r', rSvg.toFixed(3));
+    const hitPx = Math.max(radiusPxFor(score, zoomLevel), 12);
+    g.querySelector('.dot-hit').setAttribute('r', (hitPx / pxPerUnit).toFixed(3));
   });
-  dotsG.querySelectorAll('.dot-hit').forEach(hit => {
-    const score = hit.dataset.score !== '' ? +hit.dataset.score : null;
-    const rPx = Math.max(radiusPxFor(score, zoomLevel), 12);
-    hit.setAttribute('r', (rPx / pxPerUnit).toFixed(3));
+}
+// ---- collision avoidance: nudge overlapping site dots apart ----
+// Each dot's group carries its true (bx,by) anchor from proj(lon,lat); this
+// only ever adds a capped, recomputed-from-scratch offset on top of that
+// anchor — it never accumulates drift across repeated calls, and dots snap
+// back toward their true position as soon as they have room to.
+let dodgeTimer = null;
+function scheduleDodge(delay) {
+  clearTimeout(dodgeTimer);
+  dodgeTimer = setTimeout(updateDotDodge, delay != null ? delay : 100);
+}
+function updateDotDodge() {
+  const vb = getViewBox();
+  const rect = svg.getBoundingClientRect();
+  if (!rect.width || !vb[2]) return;
+  const pxPerUnit = rect.width / vb[2];
+  const margin = vb[2] * 0.15;
+  const items = [];
+  dotsG.querySelectorAll('g').forEach(g => {
+    const bx = +g.dataset.bx, by = +g.dataset.by;
+    if (bx < vb[0] - margin || bx > vb[0] + vb[2] + margin ||
+        by < vb[1] - margin || by > vb[1] + vb[3] + margin) {
+      // Off-screen (or far outside the current view) — skip the O(n^2) work
+      // and just park it at its true position.
+      g.setAttribute('transform', `translate(${bx},${by})`);
+      return;
+    }
+    const r = +g.querySelector('.dot').getAttribute('r') || 0;
+    items.push({ g, bx, by, r, x: bx, y: by });
+  });
+
+  const pad = 1.2 / pxPerUnit;
+  // Capped in real-world miles, not screen px: at full-US zoom-out a
+  // fixed-px cap would represent tens of miles and visibly shove sites out
+  // of their true state; a fixed-mileage cap barely moves anything at that
+  // scale (honest) but still gives plenty of screen room to fully separate
+  // a dense cluster once zoomed into a state (where the same mileage spans
+  // far more pixels).
+  const maxDisp = (MAX_DODGE_MILES / MILES_PER_DEG_LAT) * proj.scale;
+  for (let iter = 0; iter < 60; iter++) {
+    let moved = false;
+    for (let i = 0; i < items.length; i++) {
+      const a = items[i];
+      for (let j = i + 1; j < items.length; j++) {
+        const b = items[j];
+        let dx = b.x - a.x, dy = b.y - a.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = a.r + b.r + pad;
+        if (dist < minDist) {
+          moved = true;
+          if (dist < 1e-6) { dx = 1e-3; dy = 0; dist = 1e-3; }
+          const push = (minDist - dist) / 2;
+          const ux = dx / dist, uy = dy / dist;
+          a.x -= ux * push; a.y -= uy * push;
+          b.x += ux * push; b.y += uy * push;
+        }
+      }
+    }
+    if (!moved) break;
+  }
+
+  items.forEach(it => {
+    let ox = it.x - it.bx, oy = it.y - it.by;
+    const d = Math.sqrt(ox * ox + oy * oy);
+    if (d > maxDisp) { const s = maxDisp / d; ox *= s; oy *= s; }
+    it.g.setAttribute('transform',
+      `translate(${(it.bx + ox).toFixed(3)},${(it.by + oy).toFixed(3)})`);
   });
 }
 function updateCityMarkers() {
@@ -645,9 +724,9 @@ function updateCityMarkers() {
   const pxPerUnit = rect.width / vb[2];
   citiesG.querySelectorAll('g').forEach(g => {
     const cx = +g.dataset.cx, cy = +g.dataset.cy, capital = !!g.dataset.capital;
-    const rPx = capital ? 4.5 : 3;
-    const fontPx = capital ? 11 : 10;
-    const offPx = rPx + 4;
+    const rPx = capital ? 5.5 : 4;
+    const fontPx = capital ? 16 : 14;
+    const offPx = rPx + 5;
     const marker = g.querySelector('.city-marker');
     marker.setAttribute('cx', cx); marker.setAttribute('cy', cy);
     marker.setAttribute('r', (rPx / pxPerUnit).toFixed(3));
@@ -667,7 +746,7 @@ document.getElementById('zoomResetBtn').addEventListener('click', resetZoom);
 document.getElementById('zoomInBtn').addEventListener('click', () => stepZoom(1 / 1.7));
 document.getElementById('zoomOutBtn').addEventListener('click', () => stepZoom(1.7));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !isAtFullView()) resetZoom(); });
-window.addEventListener('resize', onViewportChange);
+window.addEventListener('resize', () => { onViewportChange(); scheduleDodge(); });
 
 // ---- wheel zoom (centered on cursor) ----
 svg.addEventListener('wheel', (e) => {
@@ -688,6 +767,7 @@ svg.addEventListener('wheel', (e) => {
   currentZoom = null;
   updateZoomUI();
   onViewportChange();
+  scheduleDodge();
 }, { passive: false });
 
 // ---- click-drag panning (native click still fires for a plain click/tap) ----
@@ -718,6 +798,7 @@ window.addEventListener('mouseup', () => {
   if (wasMoved) {
     currentZoom = null;
     updateZoomUI();
+    scheduleDodge();
     // swallow the click the browser fires right after mouseup for this drag,
     // so it doesn't also trigger a state-zoom or site-pin under the cursor
     document.addEventListener('click', (ev) => { ev.stopPropagation(); ev.preventDefault(); }, { capture: true, once: true });
@@ -927,4 +1008,5 @@ document.getElementById('btnBackToMap').addEventListener('click', () => btnMap.c
 render();
 renderTable();
 onViewportChange();
+updateDotDodge();
 </script>

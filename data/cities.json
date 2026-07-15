@@ -1,0 +1,43 @@
+[
+  {"name": "Nashville", "state": "TN", "lat": 36.1627, "lon": -86.7816, "capital": true},
+  {"name": "Memphis", "state": "TN", "lat": 35.1495, "lon": -90.0490, "capital": false},
+  {"name": "Knoxville", "state": "TN", "lat": 35.9606, "lon": -83.9207, "capital": false},
+  {"name": "Chattanooga", "state": "TN", "lat": 35.0456, "lon": -85.3097, "capital": false},
+
+  {"name": "Jackson", "state": "MS", "lat": 32.2988, "lon": -90.1848, "capital": true},
+  {"name": "Gulfport", "state": "MS", "lat": 30.3674, "lon": -89.0928, "capital": false},
+  {"name": "Hattiesburg", "state": "MS", "lat": 31.3271, "lon": -89.2903, "capital": false},
+  {"name": "Southaven", "state": "MS", "lat": 34.9890, "lon": -90.0126, "capital": false},
+
+  {"name": "Frankfort", "state": "KY", "lat": 38.2009, "lon": -84.8733, "capital": true},
+  {"name": "Louisville", "state": "KY", "lat": 38.2527, "lon": -85.7585, "capital": false},
+  {"name": "Lexington", "state": "KY", "lat": 38.0406, "lon": -84.5037, "capital": false},
+  {"name": "Bowling Green", "state": "KY", "lat": 36.9685, "lon": -86.4808, "capital": false},
+
+  {"name": "Montgomery", "state": "AL", "lat": 32.3792, "lon": -86.3077, "capital": true},
+  {"name": "Birmingham", "state": "AL", "lat": 33.5186, "lon": -86.8104, "capital": false},
+  {"name": "Huntsville", "state": "AL", "lat": 34.7304, "lon": -86.5861, "capital": false},
+  {"name": "Mobile", "state": "AL", "lat": 30.6954, "lon": -88.0399, "capital": false},
+
+  {"name": "Austin", "state": "TX", "lat": 30.2672, "lon": -97.7431, "capital": true},
+  {"name": "Houston", "state": "TX", "lat": 29.7604, "lon": -95.3698, "capital": false},
+  {"name": "Dallas", "state": "TX", "lat": 32.7767, "lon": -96.7970, "capital": false},
+  {"name": "San Antonio", "state": "TX", "lat": 29.4241, "lon": -98.4936, "capital": false},
+  {"name": "Fort Worth", "state": "TX", "lat": 32.7555, "lon": -97.3308, "capital": false},
+  {"name": "El Paso", "state": "TX", "lat": 31.7619, "lon": -106.4850, "capital": false},
+
+  {"name": "Bismarck", "state": "ND", "lat": 46.8083, "lon": -100.7837, "capital": true},
+  {"name": "Fargo", "state": "ND", "lat": 46.8772, "lon": -96.7898, "capital": false},
+  {"name": "Grand Forks", "state": "ND", "lat": 47.9253, "lon": -97.0329, "capital": false},
+
+  {"name": "Baton Rouge", "state": "LA", "lat": 30.4515, "lon": -91.1871, "capital": true},
+  {"name": "New Orleans", "state": "LA", "lat": 29.9511, "lon": -90.0715, "capital": false},
+  {"name": "Shreveport", "state": "LA", "lat": 32.5252, "lon": -93.7502, "capital": false},
+  {"name": "Lafayette", "state": "LA", "lat": 30.2241, "lon": -92.0198, "capital": false},
+
+  {"name": "Richmond", "state": "VA", "lat": 37.5407, "lon": -77.4360, "capital": true},
+  {"name": "Virginia Beach", "state": "VA", "lat": 36.8529, "lon": -75.9780, "capital": false},
+  {"name": "Norfolk", "state": "VA", "lat": 36.8508, "lon": -76.2859, "capital": false},
+  {"name": "Roanoke", "state": "VA", "lat": 37.2710, "lon": -79.9414, "capital": false},
+  {"name": "Leesburg", "state": "VA", "lat": 39.1157, "lon": -77.5636, "capital": false}
+]

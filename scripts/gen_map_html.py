@@ -7,8 +7,14 @@ with open(os.path.join(REPO_ROOT, 'data', 'map_payload.json')) as f:
     payload = json.load(f)
 with open(os.path.join(REPO_ROOT, 'data', 'state_shapes.json')) as f:
     shapes = json.load(f)
+with open(os.path.join(REPO_ROOT, 'data', 'rivers.json')) as f:
+    rivers = json.load(f)
+with open(os.path.join(REPO_ROOT, 'data', 'cities.json')) as f:
+    cities = json.load(f)
 
 payload['shapes'] = shapes
+payload['rivers'] = rivers
+payload['cities'] = cities
 
 # Safe embedding: prevent premature </script> termination
 data_json = json.dumps(payload).replace("</", "<\\/")
@@ -137,6 +143,13 @@ HTML = """<meta charset="utf-8">
   .state-highlight.zoomable-state { cursor: pointer; }
   .state-highlight.zoomable-state:hover { stroke-width: 2.4; }
   .state-name-label { fill: #666; font-size: 10px; pointer-events: none; text-anchor: middle; }
+  .river-path { fill: none; stroke: #3f6a8f; stroke-opacity: 0.55; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
+  .city-marker { fill: #c9c9c2; stroke: #0a0a0a; stroke-width: 1; pointer-events: none; }
+  .city-marker.capital { fill: #f2d675; }
+  .city-label { fill: #9a9a92; pointer-events: none; }
+  .city-label.capital { fill: #d9c07a; font-weight: 600; }
+  .layers-toggle { display: flex; gap: 14px; margin-top: 8px; }
+  .layers-toggle label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: #999; font-size: 12px; }
 
   .table-panel {
     position: absolute; inset: 0; z-index: 15; background: #0a0a0a;
@@ -170,6 +183,10 @@ HTML = """<meta charset="utf-8">
         <button id="searchClear" title="Clear search">&times;</button>
       </div>
       <div class="search-count" id="searchCount"></div>
+      <div class="layers-toggle">
+        <label><input type="checkbox" id="toggleCities" checked> Cities</label>
+        <label><input type="checkbox" id="toggleRivers" checked> Rivers</label>
+      </div>
       <hr>
       <strong>States</strong>
       <div class="zoom-indicator" id="zoomIndicator">
@@ -415,8 +432,52 @@ Object.entries(DATA.shapes).forEach(([abbr, s]) => {
 });
 svg.appendChild(basemapG);
 
+// ---- rivers (static — real named-river geometry, drawn under the state highlight fills) ----
+function lineToPath(line) {
+  let d = '';
+  line.forEach(([lon, lat], i) => {
+    const [x, y] = proj(lon, lat);
+    d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+  });
+  return d;
+}
+const riversG = document.createElementNS(ns, 'g');
+riversG.id = 'rivers';
+Object.values(DATA.rivers).forEach(lines => {
+  lines.forEach(line => {
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', lineToPath(line));
+    path.setAttribute('class', 'river-path');
+    riversG.appendChild(path);
+  });
+});
+svg.appendChild(riversG);
+
 const highlightG = document.createElementNS(ns, 'g');
 svg.appendChild(highlightG);
+
+// ---- cities (static positions — marker + label sized to stay legible at any zoom) ----
+const citiesG = document.createElementNS(ns, 'g');
+citiesG.id = 'cities';
+DATA.cities.forEach(c => {
+  const [x, y] = proj(c.lon, c.lat);
+  const g = document.createElementNS(ns, 'g');
+  g.dataset.cx = x; g.dataset.cy = y;
+  g.dataset.capital = c.capital ? '1' : '';
+
+  const marker = document.createElementNS(ns, 'circle');
+  marker.setAttribute('class', 'city-marker' + (c.capital ? ' capital' : ''));
+  g.appendChild(marker);
+
+  const label = document.createElementNS(ns, 'text');
+  label.setAttribute('class', 'city-label' + (c.capital ? ' capital' : ''));
+  label.textContent = c.name;
+  g.appendChild(label);
+
+  citiesG.appendChild(g);
+});
+svg.appendChild(citiesG);
+
 const dotsG = document.createElementNS(ns, 'g');
 svg.appendChild(dotsG);
 
@@ -513,6 +574,7 @@ function isAtFullView() {
 function onViewportChange() {
   updateScaleBar();
   updateDotSizes();
+  updateCityMarkers();
   updateZoomUI();
 }
 function animateViewBox(target, duration) {
@@ -597,6 +659,31 @@ function updateDotSizes() {
     hit.setAttribute('r', (rPx / pxPerUnit).toFixed(3));
   });
 }
+function updateCityMarkers() {
+  const vb = getViewBox();
+  const rect = svg.getBoundingClientRect();
+  if (!rect.width || !vb[2]) return;
+  const pxPerUnit = rect.width / vb[2];
+  citiesG.querySelectorAll('g').forEach(g => {
+    const cx = +g.dataset.cx, cy = +g.dataset.cy, capital = !!g.dataset.capital;
+    const rPx = capital ? 4.5 : 3;
+    const fontPx = capital ? 11 : 10;
+    const offPx = rPx + 4;
+    const marker = g.querySelector('.city-marker');
+    marker.setAttribute('cx', cx); marker.setAttribute('cy', cy);
+    marker.setAttribute('r', (rPx / pxPerUnit).toFixed(3));
+    const label = g.querySelector('.city-label');
+    label.setAttribute('x', (cx + offPx / pxPerUnit).toFixed(2));
+    label.setAttribute('y', (cy + fontPx / pxPerUnit / 3).toFixed(2));
+    label.setAttribute('font-size', (fontPx / pxPerUnit).toFixed(3));
+  });
+}
+document.getElementById('toggleCities').addEventListener('change', (e) => {
+  citiesG.style.display = e.target.checked ? '' : 'none';
+});
+document.getElementById('toggleRivers').addEventListener('change', (e) => {
+  riversG.style.display = e.target.checked ? '' : 'none';
+});
 document.getElementById('zoomResetBtn').addEventListener('click', resetZoom);
 document.getElementById('zoomInBtn').addEventListener('click', () => stepZoom(1 / 1.7));
 document.getElementById('zoomOutBtn').addEventListener('click', () => stepZoom(1.7));

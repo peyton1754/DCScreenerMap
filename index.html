@@ -10,7 +10,7 @@
     position: relative; width: 100%; min-height: 100vh; overflow: hidden;
   }
   .map-stage { position: relative; width: 100%; height: 100vh; min-height: 640px; }
-  svg#mapSvg { width: 100%; height: 100%; display: block; background: #0a0a0a; overflow: hidden; }
+  svg#mapSvg { width: 100%; height: 100%; display: block; background: #0a0a0a; overflow: hidden; cursor: grab; touch-action: none; }
 
   .panel {
     position: absolute; z-index: 10;
@@ -18,7 +18,7 @@
     border-radius: 8px; border: 1px solid #333;
     font-size: 12px; line-height: 1.5;
   }
-  .filters { top: 14px; left: 14px; padding: 12px 16px; width: 200px; }
+  .filters { top: 14px; left: 14px; padding: 12px 16px; width: 200px; max-height: calc(100vh - 300px); overflow-y: auto; }
   .filters strong { display: block; margin-bottom: 6px; color: #fff; font-size: 13px; }
   .search-wrap { position: relative; }
   .search-wrap input[type=text] {
@@ -162,11 +162,15 @@
         <button id="zoomResetBtn">&times; Reset</button>
       </div>
       <div id="stateChips"></div>
-      <div style="font-size:10.5px;color:#666;margin-top:4px;">Click a state (on the map or in this list) to zoom in</div>
       <hr>
       <label style="color:#888">Min score: <span class="score-val" id="scoreVal">0</span></label>
       <input type="range" id="scoreSlider" min="0" max="100" value="0" step="5">
       <div class="view-btns">
+        <button id="zoomOutBtn" title="Zoom out">&minus;</button>
+        <button id="zoomInBtn" title="Zoom in">+</button>
+      </div>
+      <div style="font-size:10px;color:#666;margin-top:3px;">Click a state, scroll, or drag to zoom</div>
+      <div class="view-btns" style="margin-top:8px;">
         <button id="btnMap" class="active">Map</button>
         <button id="btnTable">Table</button>
       </div>
@@ -426,11 +430,12 @@ function render() {
   const filtered = DATA.sites.filter(matchesFilters);
   filtered.forEach(s => {
     const [x,y] = proj(s.lon, s.lat);
-    const r = radiusFor(s.score);
     const color = DATA.states[s.state].dark;
+    const scoreAttr = s.score != null ? s.score : '';
 
     const dot = document.createElementNS(ns, 'circle');
-    dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', r);
+    dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+    dot.dataset.score = scoreAttr;
     dot.setAttribute('fill', color);
     dot.setAttribute('stroke', '#fff'); dot.setAttribute('stroke-width', '1.3');
     dot.setAttribute('fill-opacity', '0.85'); dot.setAttribute('stroke-opacity', '0.8');
@@ -438,7 +443,8 @@ function render() {
     dotsG.appendChild(dot);
 
     const hit = document.createElementNS(ns, 'circle');
-    hit.setAttribute('cx', x); hit.setAttribute('cy', y); hit.setAttribute('r', Math.max(r, 12));
+    hit.setAttribute('cx', x); hit.setAttribute('cy', y);
+    hit.dataset.score = scoreAttr;
     hit.setAttribute('class', 'dot-hit');
     hit.tabIndex = 0;
     hit.addEventListener('mouseenter', (e) => showHoverTip(e, s));
@@ -449,6 +455,7 @@ function render() {
     hit.addEventListener('blur', hideHoverTip);
     dotsG.appendChild(hit);
   });
+  updateDotSizes();
 
   updateStats(filtered.length);
 }
@@ -460,6 +467,8 @@ const scaleBarLine = document.getElementById('scaleBarLine');
 const scaleBarLabel = document.getElementById('scaleBarLabel');
 const MILES_PER_DEG_LAT = 69.0;
 const NICE_MILES = [1,2,5,10,15,20,25,50,75,100,150,200,250,300,500,750,1000,1500,2000,3000];
+const MIN_VB_FRAC = 0.05; // deepest manual zoom: 5% of the full map width
+const DOT_SHRINK_EXP = 0.65; // how aggressively dots shrink as you zoom in (0 = never shrink, 1 = constant screen size)
 let currentZoom = null;
 let vbAnim = null;
 
@@ -469,6 +478,27 @@ function getViewBox() {
 }
 function setViewBox(x, y, w, h) {
   svg.setAttribute('viewBox', x.toFixed(2) + ' ' + y.toFixed(2) + ' ' + w.toFixed(2) + ' ' + h.toFixed(2));
+}
+function clampViewBox(x, y, w, h) {
+  const minW = VB_W * MIN_VB_FRAC, minH = VB_H * MIN_VB_FRAC;
+  w = Math.min(VB_W, Math.max(minW, w));
+  h = Math.min(VB_H, Math.max(minH, h));
+  const marginX = VB_W * 0.15, marginY = VB_H * 0.15;
+  const minX = -marginX, maxX = VB_W + marginX - w;
+  const minY = -marginY, maxY = VB_H + marginY - h;
+  x = Math.min(Math.max(x, minX), Math.max(minX, maxX));
+  y = Math.min(Math.max(y, minY), Math.max(minY, maxY));
+  return [x, y, w, h];
+}
+function isAtFullView() {
+  const vb = getViewBox();
+  return Math.abs(vb[0]) < 0.5 && Math.abs(vb[1]) < 0.5 &&
+    Math.abs(vb[2] - VB_W) < 0.5 && Math.abs(vb[3] - VB_H) < 0.5;
+}
+function onViewportChange() {
+  updateScaleBar();
+  updateDotSizes();
+  updateZoomUI();
 }
 function animateViewBox(target, duration) {
   if (vbAnim) cancelAnimationFrame(vbAnim);
@@ -480,7 +510,7 @@ function animateViewBox(target, duration) {
     const e = ease(t);
     const cur = start.map((v, i) => v + (target[i] - v) * e);
     setViewBox(cur[0], cur[1], cur[2], cur[3]);
-    updateScaleBar();
+    onViewportChange();
     vbAnim = t < 1 ? requestAnimationFrame(frame) : null;
   }
   vbAnim = requestAnimationFrame(frame);
@@ -503,9 +533,19 @@ function resetZoom() {
   animateViewBox([0, 0, VB_W, VB_H], 500);
   updateZoomUI();
 }
+function stepZoom(factor) {
+  const vb = getViewBox();
+  const cx = vb[0] + vb[2] / 2, cy = vb[1] + vb[3] / 2;
+  const newW = vb[2] * factor, newH = vb[3] * factor;
+  const [x, y, w, h] = clampViewBox(cx - newW / 2, cy - newH / 2, newW, newH);
+  currentZoom = null;
+  animateViewBox([x, y, w, h], 250);
+  updateZoomUI();
+}
 function updateZoomUI() {
-  zoomIndicator.classList.toggle('show', !!currentZoom);
-  if (currentZoom) zoomLabel.textContent = 'Zoomed: ' + DATA.states[currentZoom].name;
+  const zoomed = !isAtFullView();
+  zoomIndicator.classList.toggle('show', zoomed);
+  zoomLabel.textContent = currentZoom ? ('Zoomed: ' + DATA.states[currentZoom].name) : (zoomed ? 'Zoomed in' : '');
 }
 function updateScaleBar() {
   const vb = svg.viewBox.baseVal;
@@ -521,9 +561,87 @@ function updateScaleBar() {
   scaleBarLine.style.width = Math.max(barPx, 4) + 'px';
   scaleBarLabel.textContent = nice + ' mi';
 }
+function radiusPxFor(score, zoomLevel) {
+  const base = radiusFor(score); // target screen px at full-map zoom (zoomLevel 1)
+  const shrunk = base / Math.pow(Math.max(zoomLevel, 1), DOT_SHRINK_EXP);
+  return Math.max(shrunk, 2.5);
+}
+function updateDotSizes() {
+  const vb = getViewBox();
+  const rect = svg.getBoundingClientRect();
+  if (!rect.width || !vb[2]) return;
+  const pxPerUnit = rect.width / vb[2];
+  const zoomLevel = VB_W / vb[2];
+  dotsG.querySelectorAll('.dot').forEach(dot => {
+    const score = dot.dataset.score !== '' ? +dot.dataset.score : null;
+    dot.setAttribute('r', (radiusPxFor(score, zoomLevel) / pxPerUnit).toFixed(3));
+  });
+  dotsG.querySelectorAll('.dot-hit').forEach(hit => {
+    const score = hit.dataset.score !== '' ? +hit.dataset.score : null;
+    const rPx = Math.max(radiusPxFor(score, zoomLevel), 12);
+    hit.setAttribute('r', (rPx / pxPerUnit).toFixed(3));
+  });
+}
 document.getElementById('zoomResetBtn').addEventListener('click', resetZoom);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && currentZoom) resetZoom(); });
-window.addEventListener('resize', updateScaleBar);
+document.getElementById('zoomInBtn').addEventListener('click', () => stepZoom(1 / 1.7));
+document.getElementById('zoomOutBtn').addEventListener('click', () => stepZoom(1.7));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !isAtFullView()) resetZoom(); });
+window.addEventListener('resize', onViewportChange);
+
+// ---- wheel zoom (centered on cursor) ----
+svg.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = svg.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const vb = getViewBox();
+  const mx = vb[0] + (e.clientX - rect.left) / rect.width * vb[2];
+  const my = vb[1] + (e.clientY - rect.top) / rect.height * vb[3];
+  const factor = Math.exp(e.deltaY * 0.0015);
+  const rawW = vb[2] * factor, rawH = vb[3] * factor;
+  const [, , newW, newH] = clampViewBox(vb[0], vb[1], rawW, rawH);
+  const newX = mx - (mx - vb[0]) * (newW / vb[2]);
+  const newY = my - (my - vb[1]) * (newH / vb[3]);
+  const [x, y, w, h] = clampViewBox(newX, newY, newW, newH);
+  if (vbAnim) { cancelAnimationFrame(vbAnim); vbAnim = null; }
+  setViewBox(x, y, w, h);
+  currentZoom = null;
+  updateZoomUI();
+  onViewportChange();
+}, { passive: false });
+
+// ---- click-drag panning (native click still fires for a plain click/tap) ----
+let panState = null;
+svg.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  panState = { startX: e.clientX, startY: e.clientY, vb0: getViewBox(), moved: false };
+});
+window.addEventListener('mousemove', (e) => {
+  if (!panState) return;
+  const dx = e.clientX - panState.startX, dy = e.clientY - panState.startY;
+  if (!panState.moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+  panState.moved = true;
+  const rect = svg.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const vb0 = panState.vb0;
+  const ux = dx / rect.width * vb0[2], uy = dy / rect.height * vb0[3];
+  const [x, y, w, h] = clampViewBox(vb0[0] - ux, vb0[1] - uy, vb0[2], vb0[3]);
+  setViewBox(x, y, w, h);
+  svg.style.cursor = 'grabbing';
+  onViewportChange();
+});
+window.addEventListener('mouseup', () => {
+  if (!panState) return;
+  const wasMoved = panState.moved;
+  panState = null;
+  svg.style.cursor = '';
+  if (wasMoved) {
+    currentZoom = null;
+    updateZoomUI();
+    // swallow the click the browser fires right after mouseup for this drag,
+    // so it doesn't also trigger a state-zoom or site-pin under the cursor
+    document.addEventListener('click', (ev) => { ev.stopPropagation(); ev.preventDefault(); }, { capture: true, once: true });
+  }
+});
 
 function fmt(v, d) {
   if (v == null || v === '') return '—';
@@ -727,5 +845,5 @@ document.getElementById('btnBackToMap').addEventListener('click', () => btnMap.c
 
 render();
 renderTable();
-updateScaleBar();
+onViewportChange();
 </script>

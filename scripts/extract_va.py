@@ -1,0 +1,54 @@
+import json
+import os
+import pandas as pd
+import numpy as np
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+df = pd.read_csv('/Users/arthurfok/Claude/Projects/VirginiaDCScreener/outputs/csv/top_candidates_va.csv')
+
+BAD = {"none", "nan", "null", ""}
+
+def clean_owner(v):
+    s = str(v).strip()
+    if s.lower() in BAD:
+        return ""
+    return s
+
+def acres_of(row):
+    for c in ("parcel_acres", "cad_acres", "osm_acres"):
+        v = row.get(c)
+        if pd.notna(v) and str(v).strip().lower() not in BAD:
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                continue
+    return None
+
+sites = []
+for _, r in df.iterrows():
+    # Virginia's independent cities (e.g. "Richmond city") are kept as-is,
+    # not stripped like other states' " County"/" Parish" suffixes, since
+    # several share a name with a legally distinct county (Richmond city vs.
+    # Richmond County) — stripping would silently conflate the two.
+    sites.append({
+        "state": "VA",
+        "name": str(r["Plant_Name"]).strip(),
+        "county": str(r["County"]).title().strip(),
+        "city": str(r["City"]).title().strip() if pd.notna(r["City"]) else "",
+        "lat": float(r["Latitude"]),
+        "lon": float(r["Longitude"]),
+        "score": float(r["total_score"]),
+        "acres": acres_of(r),
+        "owner": clean_owner(r.get("current_owner", "")),
+        "conf": str(r.get("retirement_confidence", "")).strip(),
+        "type": str(r.get("brownfield_type", "")).strip(),
+        "rank": int(r["rank"]),
+    })
+
+with open(os.path.join(REPO_ROOT, 'data', 'sites_va.json'), 'w') as f:
+    json.dump(sites, f)
+
+print(f"Extracted {len(sites)} VA sites")
+print(json.dumps(sites[0], indent=2))
+print(json.dumps(sites[-1], indent=2))

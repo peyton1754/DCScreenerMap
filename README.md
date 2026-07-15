@@ -14,15 +14,139 @@ across all states covered by the DCScreener pipeline family:
 `index.html` is a single self-contained page — a custom SVG-based US map (no
 external map tiles or network requests) with a candidate-site table view,
 per-site info panel, state-colored markers, real river geometry, and major
-population centers for orientation. It currently covers 493 sites across all
-8 states (VA 107, KY 85, LA 83, TN 75, AL 56, TX 49, MS 36, ND 2) — all 8
-slots of the project's categorical palette are now in use.
+population centers for orientation. It currently covers 340 sites across all
+8 states (KY 62, VA 57, AL 56, TX 49, TN 42, LA 41, MS 30, ND 3) — all 8
+slots of the project's categorical palette are now in use. (Site counts
+change whenever a state repo's pipeline is re-run and its data re-extracted
+here — see "Picking Up This Project" below for how that flow works.)
 
 Click a state (on the map or in the sidebar list) to jump-zoom to it, or
 scroll/drag to zoom and pan freely; site markers shrink as you zoom in so
 individual sites stay visually distinct instead of merging into overlapping
 blobs, and a scale bar (bottom-right) shows real distance at the current
 zoom level.
+
+## Picking Up This Project
+
+Read this first if you're new here — it explains the whole project family,
+not just this one repo, so you can navigate confidently before diving into
+code.
+
+### The big picture
+
+This repo doesn't generate any site data itself. It's the aggregator and
+viewer for 8 independent, state-specific pipelines that each screen retired
+industrial sites (closed power plants, factories, mills) for suitability as
+behind-the-meter data center campuses — meaning sites with existing
+grid/gas infrastructure that could host on-site generation for a large
+compute load. Each state's pipeline is its own GitHub repo with its own
+multi-stage data pipeline; this repo's only job is to pull each state's
+*already-ranked* CSV output, convert it to a shared schema, and render all
+8 states together on one interactive map.
+
+The live map is published as a Claude Artifact — republishing it after a
+data refresh is a manual step (see below), not automatic. It's private by
+default; the owner needs to share it from the Artifact page in Claude if
+someone outside the account needs the link.
+
+### The 8 state repos
+
+| State | Repo | Sites (as of last refresh) |
+|---|---|---|
+| Tennessee | [TennesseeDCScreener](https://github.com/Arthurfok1/TennesseeDCScreener) | 42 |
+| Virginia | [VirginiaDCScreener](https://github.com/Arthurfok1/VirginiaDCScreener) | 57 |
+| Louisiana | [LouisianaDCScreener](https://github.com/Arthurfok1/LouisianaDCScreener) | 41 |
+| North Dakota | [NorthDakotaDCScreener](https://github.com/Arthurfok1/NorthDakotaDCScreener) | 3 |
+| Mississippi | [MississippiDCScreener](https://github.com/Arthurfok1/MississippiDCScreener) | 30 |
+| Kentucky | [KentuckyDCScreener](https://github.com/Arthurfok1/KentuckyDCScreener) | 62 |
+| Alabama | [AlabamaDCScreener](https://github.com/Arthurfok1/AlabamaDCScreener) | 56 |
+| Texas | [DataCenterScreener](https://github.com/Arthurfok1/DataCenterScreener) | 49 |
+
+**Lineage matters for understanding the code you'll find in these repos.**
+Alabama was the *original* pipeline. Tennessee was forked from Alabama, and
+every other state was in turn forked from Tennessee. That history is why
+you'll see naming oddities scattered through several state repos — file
+paths, CSV filenames, or print statements that still say `_al` (Alabama) or
+"Tennessee" inside a completely different state's code. These have been
+checked and are cosmetic leftovers from the fork history, not functional
+bugs — safe to leave alone unless you're specifically doing cleanup. If you
+do find one you're unsure about, verify what the code actually *does*
+before assuming the label is meaningful; several past "obviously wrong"
+labels turned out to be self-consistent (a script that both writes and
+reads a confusingly-named file) rather than broken.
+
+### How a state's data reaches this map
+
+1. A state repo's pipeline runs through several stages — download raw data,
+   build a candidate pool, apply spatial filters (transmission proximity,
+   gas pipeline distance, flood zones, etc.), score retirement confidence,
+   enrich with parcel/ownership data, then score and export. The end
+   result is `outputs/csv/top_candidates_<state>.csv` in that state's own
+   repo, plus a `.geojson` twin.
+2. This repo has one `scripts/extract_<state>.py` per state (see
+   "Structure" below for which ones exist). Each reads that CSV directly
+   from the state repo's local checkout on disk and converts it to this
+   project's common site schema, writing `data/sites_<state>.json`.
+3. `scripts/merge_sites.py` folds one or more of those per-state files
+   into the combined `data/sites.json` — replacing that state's old
+   entries, never appending, so it's always safe to re-run.
+   `data/sites.json` is what every other script actually reads from; the
+   per-state `sites_<state>.json` files are just an intermediate step.
+4. `scripts/build_map.py` combines `data/sites.json` with each state's
+   metadata (display name, bounding box, categorical color) into
+   `data/map_payload.json`, which `scripts/gen_map_html.py` embeds into
+   `index.html`.
+5. `index.html` gets republished to the live Artifact URL.
+
+### Refreshing a state's data
+
+Whenever a state repo's pipeline gets re-run — new upstream data, a bug
+fix, a new enrichment source — bring the map up to date:
+
+```bash
+# 1. Re-run that state's own pipeline in its own repo, through score_and_export.py
+# 2. Then, from this repo (DCScreenerMap/):
+python3 scripts/extract_<state>.py     # re-reads that state's latest CSV
+python3 scripts/merge_sites.py <state> # folds it into the combined data/sites.json
+python3 scripts/build_map.py
+python3 scripts/gen_map_html.py
+```
+
+`merge_sites.py` also accepts multiple states in one call (e.g.
+`python3 scripts/merge_sites.py va la tn`) if you're refreshing several at
+once.
+
+Open the regenerated `index.html` locally (`python3 -m http.server` in this
+directory, then visit it in a browser) and sanity-check the state's
+markers, info panel, and table rows before republishing the Artifact.
+
+### Adding a brand-new state
+
+See "Adding a new state" below. Short version: write an extractor for it,
+give it the next unused color slot in `STATE_META` (see "Color palette"
+below — the palette is currently full), rebuild.
+
+### Known gaps, as of this handoff
+
+- **EPA retirement-signal integration** (each state repo's
+  `fetch_epa_compliance.py`, which queries EPA's live ECHO/ICIS-AIR/
+  ICIS-NPDES APIs per-site by FRS registry ID) is done for 6 of 8 states —
+  Tennessee, Virginia, Louisiana, North Dakota, Mississippi, Kentucky.
+  **Alabama and Texas don't have it yet.** Without it, a state's retirement
+  confidence skews heavily toward "UNVERIFIED" since the pipeline has no
+  real compliance evidence to work with — this was a large, real accuracy
+  improvement for the 6 states that got it, and is the natural next task
+  if you want consistency across all 8. Each of the 6 done states'
+  `fetch_epa_compliance.py` is a good template — the API usage notes in
+  its header comment (verified registry-ID query behavior, rate limiting)
+  apply identically to Alabama and Texas.
+- **WARN Act layoff-notice data is manual-only in every single state** — no
+  state employment agency was found to have a stable bulk-download feed,
+  so every state's `enrich_retirement.py` silently skips this one signal.
+  Not something to "fix" without first checking whether a given state's
+  agency has changed its data-access story since this was last checked.
+- The categorical color palette is fully used (all 8 slots taken) — see
+  "Color palette" below for what a 9th state would need.
 
 ## Structure
 
@@ -50,11 +174,15 @@ zoom level.
   2-5 largest metros per state, 34 total), each with `name`, `state`, `lat`,
   `lon`, `capital`. Not derived from an external source — authored directly,
   same as `STATE_META` in `build_map.py`.
-- `scripts/extract_la.py` — example per-state extractor: reads a state
-  screener's `top_candidates_*.csv` output and converts it to the common site
-  schema. (Louisiana's is kept as a template; the extractors for the other
-  states were run ad hoc and not preserved — recreate as needed by following
-  the same field mapping.)
+- `scripts/extract_<state>.py` — one per state, each reading that state's own
+  `top_candidates_*.csv` (from that state's own repo, not this one) and
+  converting it to the common site schema. Present for `tn`, `ms`, `nd`,
+  `ky`, `la`, `va`; not yet written for `al` or `tx` (those two states'
+  current site data was carried over from an earlier one-off extraction —
+  see "Picking Up This Project" below).
+- `scripts/merge_sites.py <state> [<state> ...]` — folds one or more
+  `data/sites_<state>.json` files into the combined `data/sites.json`,
+  replacing (not appending) that state's existing entries.
 - `scripts/build_map.py` — merges `data/sites.json` with per-state metadata
   (name, bbox, color) into `data/map_payload.json`.
 - `scripts/gen_map_html.py` — embeds `map_payload.json`, `state_shapes.json`,
@@ -69,14 +197,17 @@ zoom level.
 ## Adding a new state
 
 1. Run that state's screener pipeline through to `top_candidates_*.csv`.
-2. Write (or adapt `extract_la.py` into) a small script that reads the CSV and
-   appends entries in the common site schema to `data/sites.json`.
-3. Add the new state's abbreviation to `STATE_META` in `scripts/build_map.py`,
+2. Write (or adapt an existing `extract_<state>.py` into) a small script
+   that reads the CSV and writes `data/sites_<state>.json` in the common
+   site schema.
+3. Run `python3 scripts/merge_sites.py <state>` to fold it into
+   `data/sites.json`.
+4. Add the new state's abbreviation to `STATE_META` in `scripts/build_map.py`,
    assigning the next unused color slot in the project's fixed 8-slot
    categorical palette (see the `dataviz` skill's `references/palette.md`) —
    never an arbitrary or cycled color.
-4. Run `python3 scripts/build_map.py && python3 scripts/gen_map_html.py`.
-5. Open `index.html` locally (or via `python3 -m http.server`) and verify the
+5. Run `python3 scripts/build_map.py && python3 scripts/gen_map_html.py`.
+6. Open `index.html` locally (or via `python3 -m http.server`) and verify the
    new state's markers, info panel, and table rows render correctly before
    republishing.
 

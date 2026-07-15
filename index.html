@@ -119,6 +119,8 @@
   .dot-hit { fill: transparent; cursor: pointer; }
   .state-shape { stroke: #2a2a2a; stroke-width: 1; fill: #131313; cursor: default; }
   .state-highlight { stroke-width: 1.3; cursor: default; }
+  .state-highlight.zoomable-state { cursor: pointer; }
+  .state-highlight.zoomable-state:hover { stroke-width: 2.4; }
   .state-name-label { fill: #666; font-size: 10px; pointer-events: none; text-anchor: middle; }
 
   .table-panel {
@@ -160,7 +162,7 @@
         <button id="zoomResetBtn">&times; Reset</button>
       </div>
       <div id="stateChips"></div>
-      <div style="font-size:10.5px;color:#666;margin-top:4px;">Click a state name to zoom in</div>
+      <div style="font-size:10.5px;color:#666;margin-top:4px;">Click a state (on the map or in this list) to zoom in</div>
       <hr>
       <label style="color:#888">Min score: <span class="score-val" id="scoreVal">0</span></label>
       <input type="range" id="scoreSlider" min="0" max="100" value="0" step="5">
@@ -410,10 +412,13 @@ function render() {
     const path = document.createElementNS(ns, 'path');
     const d = shape.rings.map(ringToPath).join(' ');
     path.setAttribute('d', d);
-    path.setAttribute('class', 'state-highlight');
+    path.setAttribute('class', 'state-highlight zoomable-state');
     path.setAttribute('fill', on ? meta.dark : '#131313');
     path.setAttribute('fill-opacity', on ? '0.28' : '1');
     path.setAttribute('stroke', on ? meta.dark : '#2a2a2a');
+    path.addEventListener('click', () => {
+      if (currentZoom === k) resetZoom(); else zoomToState(k);
+    });
     highlightG.appendChild(path);
   });
 

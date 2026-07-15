@@ -1,0 +1,22 @@
+import json
+import os
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+with open(os.path.join(REPO_ROOT, 'data', 'sites.json')) as f:
+    sites = json.load(f)
+
+STATE_META = {
+    'TN': {'name': 'Tennessee',    'bbox': [-90.31, 34.98, -81.65, 36.68], 'light': '#2a78d6', 'dark': '#3987e5'},
+    'MS': {'name': 'Mississippi',  'bbox': [-91.65, 30.17, -88.10, 35.00], 'light': '#1baf7a', 'dark': '#199e70'},
+    'KY': {'name': 'Kentucky',     'bbox': [-89.57, 36.50, -81.96, 39.15], 'light': '#eda100', 'dark': '#c98500'},
+    'AL': {'name': 'Alabama',      'bbox': [-88.47, 30.14, -84.89, 35.01], 'light': '#008300', 'dark': '#008300'},
+    'TX': {'name': 'Texas',        'bbox': [-106.65, 25.84, -93.51, 36.50], 'light': '#4a3aa7', 'dark': '#9085e9'},
+    'ND': {'name': 'North Dakota', 'bbox': [-104.05, 45.94, -96.55, 49.00], 'light': '#e34948', 'dark': '#e66767'},
+    'LA': {'name': 'Louisiana',    'bbox': [-94.04, 28.86, -88.75, 33.02], 'light': '#e87ba4', 'dark': '#d55181'},
+}
+
+payload = {'sites': sites, 'states': STATE_META}
+with open(os.path.join(REPO_ROOT, 'data', 'map_payload.json'), 'w') as f:
+    json.dump(payload, f)
+print('rows:', len(sites))

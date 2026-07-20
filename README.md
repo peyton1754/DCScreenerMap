@@ -125,40 +125,17 @@ markers, info panel, and table rows before republishing the Artifact.
 Two separate things have to happen, in this order, and this repo only
 covers the second one:
 
-1. **Build that state's own screening pipeline repo first** — see
-   "Building a brand-new state pipeline" below. This repo has no part in
-   that; it only ever reads a finished `top_candidates_*.csv`.
-2. Once that pipeline produces a ranked CSV, wire it into the map: write
+1. **Build that state's own screening pipeline repo first.** This repo
+   has no part in that; it only ever reads a finished
+   `top_candidates_*.csv`. Full step-by-step instructions (which repo to
+   fork, every state-specific constant that needs changing, where to
+   find real state-specific data sources, known traps found while doing
+   this for Kentucky and West Virginia) are in
+   [`docs/adding-a-new-state.md`](docs/adding-a-new-state.md).
+2. Once that pipeline produces a ranked CSV, wire it into the map — write
    an extractor, give it the next unused color slot in `STATE_META` (see
-   "Color palette" below — the palette is currently full), rebuild. See
-   "Adding a new state" below for the exact steps.
-
-### Building a brand-new state pipeline
-
-This is the bigger lift and happens entirely inside a new state repo, not
-here. Fork **WestVirginiaDCScreener**, not Alabama or Tennessee — it's the
-newest pipeline, has every current source wired in correctly (EIA860, GEM
-Coal Tracker, EPA Redevelopment Mapper, FRS, TRI, OSM, RCRA CA
-corroboration) and no known bugs, so it's the cleanest starting point
-rather than something forked years ago that later got patched piecemeal.
-After forking:
-
-1. Swap every state-specific constant: `TARGET_STATES`, FIPS code, county
-   list, state postal abbreviation used in file paths and CSV names.
-2. Replace the state-specific data sources — county/statewide parcel GIS
-   endpoint, any state environmental agency feeds — with that state's
-   real equivalents. These do not follow a template; each state's GIS
-   landscape is different (see e.g. Tennessee's README "County GIS Parcel
-   Coverage" table for what this looks like once done).
-3. Leave the multi-state sources alone (EIA860, GEM Coal Tracker, EPA
-   Redevelopment Mapper, FRS, TRI, OSM, RCRA CA) — they're already
-   state-filtered generically by `TARGET_STATES` and need no per-state
-   code.
-4. Run the full pipeline end to end and sanity-check the output CSV
-   (site count, score distribution, spot-check a few `Street_Address`
-   values on a map) before treating it as real.
-5. Update that repo's own README's "Data Sources" table — the map-level
-   handoff above assumes each state repo documents its own sourcing.
+   "Color palette" below — the palette is currently full), rebuild.
+   Covered in Phase 2 of the same doc, and in "Adding a new state" below.
 
 ### Adding a new brownfield source to an existing state's pipeline
 
@@ -290,7 +267,9 @@ per cluster using a priority order defined near the bottom of the file
 
 ## Adding a new state
 
-1. Run that state's screener pipeline through to `top_candidates_*.csv`.
+1. Run that state's screener pipeline through to `top_candidates_*.csv`
+   (see [`docs/adding-a-new-state.md`](docs/adding-a-new-state.md) if
+   that pipeline doesn't exist yet).
 2. Write (or adapt an existing `extract_<state>.py` into) a small script
    that reads the CSV and writes `data/sites_<state>.json` in the common
    site schema.

@@ -218,16 +218,20 @@ per cluster using a priority order defined near the bottom of the file
   agency has changed its data-access story since this was last checked.
 - The categorical color palette is fully used (all 8 slots taken) — see
   "Color palette" below for what a 9th state would need.
-- **Two download URLs are confirmed dead as of this handoff** (verified via
-  live `curl`, not just inferred): EIA's `ElectricRetail_Territories.zip`
+- **Three download URLs are confirmed dead as of this handoff** (verified
+  via live `curl`, not just inferred): EIA's `ElectricRetail_Territories.zip`
   (`https://www.eia.gov/maps/map_data/ElectricRetail_Territories.zip`, used
-  in each state's `download_<state>.py`) and the ScienceBase-hosted PAD-US
+  in each state's `download_<state>.py`), the ScienceBase-hosted PAD-US
   4.1 state GDB used by West Virginia's
-  `download_westvirginia_extras.py`. Both already fail gracefully inside
-  existing try/except blocks — the pipeline runs fine without them, just
-  missing that one signal — so this is a "known gap to eventually fix,"
-  not a "pipeline is broken" situation. Re-check for a replacement URL
-  before spending time debugging why a related score/column looks empty.
+  `download_westvirginia_extras.py`, and Kentucky's statewide parcel
+  FeatureServer (`opengisdata.ky.gov/.../KY_Statewide_Parcel_Boundary`,
+  used by `fetch_parcels_ky.py` — a 404, likely means KY's Open Data
+  Portal moved or renamed the layer). All three already fail gracefully
+  inside existing try/except blocks — the pipeline runs fine without them,
+  just missing that one signal — so this is a "known gap to eventually
+  fix," not a "pipeline is broken" situation. Re-check for a replacement
+  URL before spending time debugging why a related score/column looks
+  empty.
 - **GEM's Global Coal Plant Tracker requires a one-time manual download**
   per machine/checkout — it's gated behind an email signup form
   (globalenergymonitor.org/projects/global-coal-plant-tracker/download-data/),

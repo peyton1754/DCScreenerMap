@@ -142,37 +142,12 @@ covers the second one:
 Every state's `build_candidates.py` follows the same pattern: a numbered
 list of sources (currently 1 EIA860, 1b GEM Coal Tracker, 2 FRS, 3 TRI,
 4 OSM, 5 EPA Redevelopment Mapper — TRI is absent in Alabama and Texas),
-each producing rows in the shared candidate schema (`source`, `site_id`,
-`Plant_Name`, `State`, `County`, `Latitude`, `Longitude`, etc.), followed
-by a single dedup pass keyed on 500m spatial proximity that picks one row
-per cluster using a priority order defined near the bottom of the file
-(e.g. `{"EIA860": 0, "GEM_COAL": 1, "SRP_REDEV_MAPPER": 2, "FRS": 3,
-"TRI": 4, "OSM": 5}` — lower number wins). To add a new source:
-
-1. Add a new numbered block in `build_candidates.py` that queries/reads
-   the new dataset and emits rows in the common schema, tagged with a
-   distinct `source` value.
-2. Add that `source` value to the priority dict, choosing its rank based
-   on how trustworthy/precise the new dataset's coordinates and site
-   identity are relative to the existing sources.
-3. If the source needs a manually-downloaded file (no stable bulk API —
-   GEM's Coal Plant Tracker is the existing example), have the script
-   glob-match a versioned filename pattern in a dedicated subfolder under
-   `data/<state>/raw/`, and print clear instructions (source URL, exact
-   destination folder, filename pattern) when the file is missing instead
-   of failing silently. Look at the GEM block in any state's
-   `build_candidates.py` (search for `Source 1b`) as the template.
-4. If the source adds any new enrichment column downstream (in
-   `enrich_columns.py` / `fetch_texas_parcels.py` for Texas), remember to
-   add that column name to `EXPORT_COLS` in `score_and_export.py` —
-   **this is easy to miss** and the column will be computed correctly but
-   silently dropped from the final CSV without an error. This exact bug
-   happened with `acres_source` and `rcra_corrective_action` during this
-   handoff and was only caught by running the full pipeline and checking
-   real output, not by any smoke test.
-5. Port the new source to the other state repos individually — there is
-   no shared library between repos, each `build_candidates.py` is a full
-   copy that needs the same edit applied by hand.
+each producing rows in the shared candidate schema, followed by a single
+dedup pass keyed on 500m spatial proximity. Full instructions — the
+schema, the candidate-vs-corroboration distinction, the exact bug that's
+already bitten this twice (a column silently dropped from the export),
+and how to port a new source across repos without missing something —
+are in [`docs/adding-a-new-source.md`](docs/adding-a-new-source.md).
 
 ### Known gaps, as of this handoff
 

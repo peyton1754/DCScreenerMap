@@ -62,6 +62,12 @@ someone outside the account needs the link.
 | Alabama | [AlabamaDCScreener](https://github.com/Arthurfok1/AlabamaDCScreener) | 56 |
 | Texas | [DataCenterScreener](https://github.com/Arthurfok1/DataCenterScreener) | 49 |
 
+Each state repo's own README (plus [KentuckyDCScreener](https://github.com/Arthurfok1/KentuckyDCScreener) and [WestVirginiaDCScreener](https://github.com/Arthurfok1/WestVirginiaDCScreener), not yet in this table) links back to
+[`docs/adding-a-new-state.md`](docs/adding-a-new-state.md) and
+[`docs/adding-a-new-source.md`](docs/adding-a-new-source.md) here, so
+someone landing in any single state repo can find their way to these
+guides without first knowing DCScreenerMap exists.
+
 **Lineage matters for understanding the code you'll find in these repos.**
 Alabama was the *original* pipeline. Tennessee was forked from Alabama, and
 every other state was in turn forked from Tennessee. That history is why

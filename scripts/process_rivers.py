@@ -32,7 +32,7 @@ URL = (
     "geojson/ne_10m_rivers_lake_centerlines.geojson"
 )
 
-TARGET_STATES = ['TN', 'MS', 'KY', 'AL', 'TX', 'ND', 'LA', 'VA']
+TARGET_STATES = ['TN', 'MS', 'KY', 'AL', 'TX', 'ND', 'LA', 'VA', 'AR']
 DROP_NAMES = {
     'Cowpasture', 'Prairie Dog Town Fork Red',
     'Double Mountain Fork Brazos', 'S. Branch Potomac',

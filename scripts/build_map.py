@@ -15,6 +15,7 @@ STATE_META = {
     'ND': {'name': 'North Dakota', 'bbox': [-104.05, 45.94, -96.55, 49.00], 'light': '#e34948', 'dark': '#e66767'},
     'LA': {'name': 'Louisiana',    'bbox': [-94.04, 28.86, -88.75, 33.02], 'light': '#e87ba4', 'dark': '#d55181'},
     'VA': {'name': 'Virginia',     'bbox': [-83.68, 36.54, -75.17, 39.47], 'light': '#eb6834', 'dark': '#d95926'},
+    'AR': {'name': 'Arkansas',     'bbox': [-94.6162, 33.0021, -89.7308, 36.5019], 'light': '#8a3f10', 'dark': '#a04f16'},
 }
 
 payload = {'sites': sites, 'states': STATE_META}

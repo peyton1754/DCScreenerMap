@@ -8,17 +8,20 @@ across all states covered by the DCScreener pipeline family:
 [KentuckyDCScreener](https://github.com/Arthurfok1/KentuckyDCScreener),
 [AlabamaDCScreener](https://github.com/Arthurfok1/AlabamaDCScreener),
 [DataCenterScreener](https://github.com/Arthurfok1/DataCenterScreener) (Texas),
-[LouisianaDCScreener](https://github.com/Arthurfok1/LouisianaDCScreener), and
-[VirginiaDCScreener](https://github.com/Arthurfok1/VirginiaDCScreener).
+[LouisianaDCScreener](https://github.com/Arthurfok1/LouisianaDCScreener),
+[VirginiaDCScreener](https://github.com/Arthurfok1/VirginiaDCScreener), and
+[ArkansasDCScreener](https://github.com/Arthurfok1/ArkansasDCScreener).
 
 `index.html` is a single self-contained page — a custom SVG-based US map (no
 external map tiles or network requests) with a candidate-site table view,
 per-site info panel, state-colored markers, real river geometry, and major
-population centers for orientation. It currently covers 340 sites across all
-8 states (KY 62, VA 57, AL 56, TX 49, TN 42, LA 41, MS 30, ND 3) — all 8
-slots of the project's categorical palette are now in use. (Site counts
-change whenever a state repo's pipeline is re-run and its data re-extracted
-here — see "Picking Up This Project" below for how that flow works.)
+population centers for orientation. It currently covers 360 sites across all
+9 states (KY 62, VA 57, AL 56, TX 49, TN 42, LA 41, MS 30, AR 20, ND 3) — the
+project's originally-fixed 8-slot categorical palette has been stretched to 9
+as a stopgap (see "Color palette" below for why this is a real design tension,
+not a solved problem). (Site counts change whenever a state repo's pipeline
+is re-run and its data re-extracted here — see "Picking Up This Project"
+below for how that flow works.)
 
 Click a state (on the map or in the sidebar list) to jump-zoom to it, or
 scroll/drag to zoom and pan freely; site markers shrink as you zoom in so
@@ -35,21 +38,21 @@ code.
 ### The big picture
 
 This repo doesn't generate any site data itself. It's the aggregator and
-viewer for 8 independent, state-specific pipelines that each screen retired
+viewer for 9 independent, state-specific pipelines that each screen retired
 industrial sites (closed power plants, factories, mills) for suitability as
 behind-the-meter data center campuses — meaning sites with existing
 grid/gas infrastructure that could host on-site generation for a large
 compute load. Each state's pipeline is its own GitHub repo with its own
 multi-stage data pipeline; this repo's only job is to pull each state's
 *already-ranked* CSV output, convert it to a shared schema, and render all
-8 states together on one interactive map.
+9 states together on one interactive map.
 
 The live map is published as a Claude Artifact — republishing it after a
 data refresh is a manual step (see below), not automatic. It's private by
 default; the owner needs to share it from the Artifact page in Claude if
 someone outside the account needs the link.
 
-### The 8 state repos
+### The 9 state repos
 
 | State | Repo | Sites (as of last refresh) |
 |---|---|---|
@@ -61,6 +64,11 @@ someone outside the account needs the link.
 | Kentucky | [KentuckyDCScreener](https://github.com/Arthurfok1/KentuckyDCScreener) | 62 |
 | Alabama | [AlabamaDCScreener](https://github.com/Arthurfok1/AlabamaDCScreener) | 56 |
 | Texas | [DataCenterScreener](https://github.com/Arthurfok1/DataCenterScreener) | 49 |
+| Arkansas | [ArkansasDCScreener](https://github.com/Arthurfok1/ArkansasDCScreener) | 20 |
+
+Forked from WestVirginiaDCScreener (the newest, bug-fixed template at the
+time), not from Tennessee like the older states — see that repo's own README
+for why the fork lineage changed partway through this project.
 
 Each state repo's own README (plus [KentuckyDCScreener](https://github.com/Arthurfok1/KentuckyDCScreener) and [WestVirginiaDCScreener](https://github.com/Arthurfok1/WestVirginiaDCScreener), not yet in this table) links back to
 [`docs/adding-a-new-state.md`](docs/adding-a-new-state.md) and
@@ -139,9 +147,10 @@ covers the second one:
    this for Kentucky and West Virginia) are in
    [`docs/adding-a-new-state.md`](docs/adding-a-new-state.md).
 2. Once that pipeline produces a ranked CSV, wire it into the map — write
-   an extractor, give it the next unused color slot in `STATE_META` (see
-   "Color palette" below — the palette is currently full), rebuild.
-   Covered in Phase 2 of the same doc, and in "Adding a new state" below.
+   an extractor, pick a new color for `STATE_META` (see "Color palette"
+   below — this is now a real, unresolved design decision, not a matter of
+   finding the "next unused slot"), rebuild. Covered in Phase 2 of the same
+   doc, and in "Adding a new state" below.
 
 ### Adding a new brownfield source to an existing state's pipeline
 
@@ -174,8 +183,9 @@ are in [`docs/adding-a-new-source.md`](docs/adding-a-new-source.md).
   so every state's `enrich_retirement.py` silently skips this one signal.
   Not something to "fix" without first checking whether a given state's
   agency has changed its data-access story since this was last checked.
-- The categorical color palette is fully used (all 8 slots taken) — see
-  "Color palette" below for what a 9th state would need.
+- The categorical color palette is now a real, acknowledged design problem,
+  not just "full" — see "Color palette" below. A 10th state (West Virginia
+  is already waiting) needs this decided, not just another stretched hue.
 - **Three download URLs are confirmed dead as of this handoff** (verified
   via live `curl`, not just inferred): EIA's `ElectricRetail_Territories.zip`
   (`https://www.eia.gov/maps/map_data/ElectricRetail_Territories.zip`, used
@@ -213,9 +223,10 @@ are in [`docs/adding-a-new-source.md`](docs/adding-a-new-source.md).
 - `data/map_payload.json` — `sites.json` + per-state metadata (display name,
   bounding box, categorical color) combined into the single payload embedded
   in `index.html`, generated by `scripts/build_map.py`.
-- `data/rivers.json` — real named-river line geometry (23 rivers, e.g.
-  Mississippi, Tennessee, Cumberland, James-of-North-Dakota, Rio Grande) for
-  the 8 covered states, generated from Natural Earth's 10m rivers dataset by
+- `data/rivers.json` — real named-river line geometry (including Mississippi,
+  Tennessee, Cumberland, James-of-North-Dakota, Rio Grande, Arkansas, White)
+  for the 9 covered states, generated from Natural Earth's 10m rivers dataset
+  by
   `scripts/process_rivers.py`. Filtered by genuine point-in-polygon
   intersection with the real state shapes, not bounding boxes, to avoid false
   positives (an earlier bbox-only pass wrongly pulled in the St. Lawrence).
@@ -223,13 +234,13 @@ are in [`docs/adding-a-new-source.md`](docs/adding-a-new-source.md).
   resolution and isn't hand-drawn as a substitute — see the script's header
   comment.
 - `data/cities.json` — hand-curated major population centers (state capital +
-  2-5 largest metros per state, 34 total), each with `name`, `state`, `lat`,
+  2-5 largest metros per state, 39 total), each with `name`, `state`, `lat`,
   `lon`, `capital`. Not derived from an external source — authored directly,
   same as `STATE_META` in `build_map.py`.
 - `scripts/extract_<state>.py` — one per state, each reading that state's own
   `top_candidates_*.csv` (from that state's own repo, not this one) and
   converting it to the common site schema. Present for `tn`, `ms`, `nd`,
-  `ky`, `la`, `va`; not yet written for `al` or `tx` (those two states'
+  `ky`, `la`, `va`, `ar`; not yet written for `al` or `tx` (those two states'
   current site data was carried over from an earlier one-off extraction —
   see "Picking Up This Project" below).
 - `scripts/merge_sites.py <state> [<state> ...]` — folds one or more
@@ -256,10 +267,12 @@ are in [`docs/adding-a-new-source.md`](docs/adding-a-new-source.md).
    site schema.
 3. Run `python3 scripts/merge_sites.py <state>` to fold it into
    `data/sites.json`.
-4. Add the new state's abbreviation to `STATE_META` in `scripts/build_map.py`,
-   assigning the next unused color slot in the project's fixed 8-slot
-   categorical palette (see the `dataviz` skill's `references/palette.md`) —
-   never an arbitrary or cycled color.
+4. Add the new state's abbreviation to `STATE_META` in `scripts/build_map.py`.
+   Read "Color palette" below first — the original fixed 8-slot categorical
+   palette is a hard cap per the `dataviz` skill, already stretched once for
+   Arkansas as a stopgap with known collisions. Don't just pick another
+   arbitrary hue; decide deliberately (validate against real neighbor states
+   at minimum, or reconsider composite encoding) before adding another.
 5. Run `python3 scripts/build_map.py && python3 scripts/gen_map_html.py`.
 6. Open `index.html` locally (or via `python3 -m http.server`) and verify the
    new state's markers, info panel, and table rows render correctly before
@@ -267,10 +280,35 @@ are in [`docs/adding-a-new-source.md`](docs/adding-a-new-source.md).
 
 ## Color palette
 
-State marker colors are assigned in the fixed CVD-safe categorical order from
-the `dataviz` skill (blue, aqua, yellow, green, violet, red, magenta, orange —
-all 8 slots now in use). The palette has no 9th slot: a state added beyond
-these 8 needs a genuinely new categorical color chosen and validated the same
-way the `dataviz` skill's reference palette was (run
-`scripts/validate_palette.js` from that skill against candidate orderings),
-not an arbitrary or cycled reuse of an existing slot.
+**This section's previous guidance was wrong and led the project into a real
+design problem — read this before adding a 10th state.**
+
+State marker colors were originally assigned from the `dataviz` skill's fixed
+CVD-safe categorical order (blue, aqua, yellow, green, violet, red, magenta,
+orange). That skill is explicit that **8 is a hard cap, not a soft one** — a
+9th series is never supposed to be a generated hue; the skill's own guidance
+is to fold an overflow series into "Other," small multiples, or a composite
+encoding (shape/texture) instead. Arkansas's onboarding invoked the skill's
+real validator (`--pairs all` mode, the correct test for a choropleth/map use
+case) and found two things:
+
+1. **The original 8-color palette already had two collisions**, independent
+   of Arkansas: Louisiana's dark magenta vs. Mississippi's dark aqua (ΔE 1.6),
+   and Texas's dark violet vs. Tennessee's dark blue (ΔE 9.8). Nobody had run
+   the pairwise validator against the *dark* variants actually used on the
+   map before this — it's a pre-existing gap, not something Arkansas caused.
+2. Arkansas's 9th color (a rust/terracotta, `light`/`dark` hex in
+   `STATE_META`) was validated only against the states it actually borders on
+   the map (TN, MS, LA, TX) — not against the full 9-state set, and not
+   against North Dakota's red (they do collide under CVD simulation), which
+   is why Arkansas's entry sits at the *end* of `STATE_META`'s dict order,
+   away from North Dakota.
+
+**This is a stopgap, not a resolved problem.** WestVirginiaDCScreener already
+exists as a 9th pipeline repo waiting to be wired in — adding it as a 10th
+map color will make an already-strained palette worse. Before that happens,
+decide whether to (a) keep stretching categorical hues and accept the
+validator's warnings, or (b) switch to the composite encoding the `dataviz`
+skill actually recommends for >8 categories (e.g. shape or pattern on top of
+a smaller reused hue set). Don't add an 11th, 12th, etc. color the same way
+this one was added without revisiting that decision first.

@@ -34,7 +34,7 @@ for _, r in df.iterrows():
     sites.append({
         "state": "VA",
         "name": str(r["Plant_Name"]).strip(),
-        "county": str(r["County"]).title().strip(),
+        "county": str(r["County"]).title().strip() if pd.notna(r["County"]) else "",
         "city": str(r["City"]).title().strip() if pd.notna(r["City"]) else "",
         "lat": float(r["Latitude"]),
         "lon": float(r["Longitude"]),

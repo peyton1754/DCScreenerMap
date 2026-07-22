@@ -31,6 +31,8 @@ def clean_county(v):
     # don't (e.g. "JEFFERSON COUNTY" vs "JEFFERSON" for the same county).
     # Strip it before title-casing, same idea as LA's " Parish" stripping,
     # so the map doesn't show duplicate entries for one real county.
+    if pd.isna(v):
+        return ""
     s = str(v).strip()
     if s.lower().endswith(" county"):
         s = s[: -len(" county")]

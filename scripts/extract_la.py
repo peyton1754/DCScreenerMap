@@ -5,7 +5,7 @@ import numpy as np
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-df = pd.read_csv('/Users/arthurfok/Claude/Projects/LouisianaDCScreener/outputs/csv/top_candidates_la.csv')
+df = pd.read_csv('/private/tmp/claude-501/-Users-arthurfok/a2187ac2-b16c-4eeb-b501-1cd4af8a7360/scratchpad/repos/LouisianaDCScreener/outputs/csv/top_candidates_la.csv')
 
 BAD = {"none", "nan", "null", ""}
 

@@ -1,11 +1,10 @@
 import json
 import os
 import pandas as pd
-import numpy as np
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-df = pd.read_csv('/private/tmp/claude-501/-Users-arthurfok/a2187ac2-b16c-4eeb-b501-1cd4af8a7360/scratchpad/repos/VirginiaDCScreener/outputs/csv/top_candidates_va.csv')
+df = pd.read_csv('/private/tmp/claude-501/-Users-arthurfok/a2187ac2-b16c-4eeb-b501-1cd4af8a7360/scratchpad/repos/AlabamaDCScreener/outputs/csv/top_candidates_al.csv')
 
 BAD = {"none", "nan", "null", ""}
 
@@ -27,12 +26,8 @@ def acres_of(row):
 
 sites = []
 for _, r in df.iterrows():
-    # Virginia's independent cities (e.g. "Richmond city") are kept as-is,
-    # not stripped like other states' " County"/" Parish" suffixes, since
-    # several share a name with a legally distinct county (Richmond city vs.
-    # Richmond County) — stripping would silently conflate the two.
     sites.append({
-        "state": "VA",
+        "state": "AL",
         "name": str(r["Plant_Name"]).strip(),
         "county": str(r["County"]).title().strip(),
         "city": str(r["City"]).title().strip() if pd.notna(r["City"]) else "",
@@ -46,9 +41,9 @@ for _, r in df.iterrows():
         "rank": int(r["rank"]),
     })
 
-with open(os.path.join(REPO_ROOT, 'data', 'sites_va.json'), 'w') as f:
+with open(os.path.join(REPO_ROOT, 'data', 'sites_al.json'), 'w') as f:
     json.dump(sites, f)
 
-print(f"Extracted {len(sites)} VA sites")
+print(f"Extracted {len(sites)} AL sites")
 print(json.dumps(sites[0], indent=2))
 print(json.dumps(sites[-1], indent=2))

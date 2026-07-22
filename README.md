@@ -15,8 +15,8 @@ across all states covered by the DCScreener pipeline family:
 `index.html` is a single self-contained page — a custom SVG-based US map (no
 external map tiles or network requests) with a candidate-site table view,
 per-site info panel, state-colored markers, real river geometry, and major
-population centers for orientation. It currently covers 360 sites across all
-9 states (KY 62, VA 57, AL 56, TX 49, TN 42, LA 41, MS 30, AR 20, ND 3) — the
+population centers for orientation. It currently covers 443 sites across all
+9 states (AL 146, KY 61, VA 57, TX 49, TN 36, LA 41, MS 30, AR 20, ND 3) — the
 project's originally-fixed 8-slot categorical palette has been stretched to 9
 as a stopgap (see "Color palette" below for why this is a real design tension,
 not a solved problem). (Site counts change whenever a state repo's pipeline
@@ -56,13 +56,13 @@ someone outside the account needs the link.
 
 | State | Repo | Sites (as of last refresh) |
 |---|---|---|
-| Tennessee | [TennesseeDCScreener](https://github.com/Arthurfok1/TennesseeDCScreener) | 42 |
+| Tennessee | [TennesseeDCScreener](https://github.com/Arthurfok1/TennesseeDCScreener) | 36 |
 | Virginia | [VirginiaDCScreener](https://github.com/Arthurfok1/VirginiaDCScreener) | 57 |
 | Louisiana | [LouisianaDCScreener](https://github.com/Arthurfok1/LouisianaDCScreener) | 41 |
 | North Dakota | [NorthDakotaDCScreener](https://github.com/Arthurfok1/NorthDakotaDCScreener) | 3 |
 | Mississippi | [MississippiDCScreener](https://github.com/Arthurfok1/MississippiDCScreener) | 30 |
-| Kentucky | [KentuckyDCScreener](https://github.com/Arthurfok1/KentuckyDCScreener) | 62 |
-| Alabama | [AlabamaDCScreener](https://github.com/Arthurfok1/AlabamaDCScreener) | 56 |
+| Kentucky | [KentuckyDCScreener](https://github.com/Arthurfok1/KentuckyDCScreener) | 61 |
+| Alabama | [AlabamaDCScreener](https://github.com/Arthurfok1/AlabamaDCScreener) | 146 |
 | Texas | [DataCenterScreener](https://github.com/Arthurfok1/DataCenterScreener) | 49 |
 | Arkansas | [ArkansasDCScreener](https://github.com/Arthurfok1/ArkansasDCScreener) | 20 |
 
@@ -240,7 +240,7 @@ are in [`docs/adding-a-new-source.md`](docs/adding-a-new-source.md).
 - `scripts/extract_<state>.py` — one per state, each reading that state's own
   `top_candidates_*.csv` (from that state's own repo, not this one) and
   converting it to the common site schema. Present for `tn`, `ms`, `nd`,
-  `ky`, `la`, `va`, `ar`; not yet written for `al` or `tx` (those two states'
+  `ky`, `la`, `va`, `ar`, `al`; not yet written for `tx` (that state's
   current site data was carried over from an earlier one-off extraction —
   see "Picking Up This Project" below).
 - `scripts/merge_sites.py <state> [<state> ...]` — folds one or more

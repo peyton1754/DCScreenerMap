@@ -15,8 +15,8 @@ across all states covered by the DCScreener pipeline family:
 `index.html` is a single self-contained page — a custom SVG-based US map (no
 external map tiles or network requests) with a candidate-site table view,
 per-site info panel, state-colored markers, real river geometry, and major
-population centers for orientation. It currently covers 430 sites across all
-9 states (AL 148, KY 61, VA 54, TX 49, TN 36, LA 41, MS 20, AR 20, ND 1) — the
+population centers for orientation. It currently covers 441 sites across all
+9 states (AL 148, KY 61, TX 60, VA 54, TN 36, LA 41, MS 20, AR 20, ND 1) — the
 project's originally-fixed 8-slot categorical palette has been stretched to 9
 as a stopgap (see "Color palette" below for why this is a real design tension,
 not a solved problem). (Site counts change whenever a state repo's pipeline
@@ -63,7 +63,7 @@ someone outside the account needs the link.
 | Mississippi | [MississippiDCScreener](https://github.com/Arthurfok1/MississippiDCScreener) | 20 |
 | Kentucky | [KentuckyDCScreener](https://github.com/Arthurfok1/KentuckyDCScreener) | 61 |
 | Alabama | [AlabamaDCScreener](https://github.com/Arthurfok1/AlabamaDCScreener) | 148 |
-| Texas | [DataCenterScreener](https://github.com/Arthurfok1/DataCenterScreener) | 49 |
+| Texas | [DataCenterScreener](https://github.com/Arthurfok1/DataCenterScreener) | 60 |
 | Arkansas | [ArkansasDCScreener](https://github.com/Arthurfok1/ArkansasDCScreener) | 20 |
 
 Forked from WestVirginiaDCScreener (the newest, bug-fixed template at the
@@ -168,16 +168,28 @@ are in [`docs/adding-a-new-source.md`](docs/adding-a-new-source.md).
 
 - **EPA retirement-signal integration** (each state repo's
   `fetch_epa_compliance.py`, which queries EPA's live ECHO/ICIS-AIR/
-  ICIS-NPDES APIs per-site by FRS registry ID) is done for 6 of 8 states —
-  Tennessee, Virginia, Louisiana, North Dakota, Mississippi, Kentucky.
-  **Alabama and Texas don't have it yet.** Without it, a state's retirement
-  confidence skews heavily toward "UNVERIFIED" since the pipeline has no
-  real compliance evidence to work with — this was a large, real accuracy
-  improvement for the 6 states that got it, and is the natural next task
-  if you want consistency across all 8. Each of the 6 done states'
-  `fetch_epa_compliance.py` is a good template — the API usage notes in
-  its header comment (verified registry-ID query behavior, rate limiting)
-  apply identically to Alabama and Texas.
+  ICIS-NPDES APIs per-site by FRS registry ID) is done for 6 of 8 states
+  that use this shared pattern — Tennessee, Virginia, Louisiana, North
+  Dakota, Mississippi, Kentucky. **Alabama doesn't have it yet** — its
+  retirement confidence skews heavily toward "UNVERIFIED" without it, and
+  each of the 6 done states' `fetch_epa_compliance.py` is a good template
+  (verified registry-ID query behavior, rate limiting) to port over.
+  Texas doesn't use this shared pattern at all — its own
+  `fetch_texas_parcels.py` computes retirement confidence independently
+  via 11 TX-specific signals (franchise tax status, TCEQ emissions,
+  county appraisal district records, etc.), not the ECHO/ICIS pattern —
+  see that repo's own README for its architecture.
+- **Retirement-confidence scoring has been through two rounds of fixes
+  this session** (see git history in each state repo's
+  `enrich_retirement.py` / Texas's `fetch_texas_parcels.py`): a strong/
+  weak signal-weighting fix, then a further demotion of `TRI_CLOSED_FLAG`
+  (and Texas's independently-discovered `EPA_CORROBORATED`, which was
+  outright meaningless). A known, accepted remaining gap: a genuinely
+  real historical closure signal on a site later reoccupied by an
+  unrelated tenant can still score HIGH (e.g. Louisiana's "Fuel Solutions
+  LLC", Tennessee's "Summers Taylor Materials Co") — fully closing this
+  needs a live business-registry active-status check no state's pipeline
+  has yet, not just more signal re-weighting.
 - **WARN Act layoff-notice data is manual-only in every single state** — no
   state employment agency was found to have a stable bulk-download feed,
   so every state's `enrich_retirement.py` silently skips this one signal.
@@ -247,10 +259,10 @@ are in [`docs/adding-a-new-source.md`](docs/adding-a-new-source.md).
   same as `STATE_META` in `build_map.py`.
 - `scripts/extract_<state>.py` — one per state, each reading that state's own
   `top_candidates_*.csv` (from that state's own repo, not this one) and
-  converting it to the common site schema. Present for `tn`, `ms`, `nd`,
-  `ky`, `la`, `va`, `ar`, `al`; not yet written for `tx` (that state's
-  current site data was carried over from an earlier one-off extraction —
-  see "Picking Up This Project" below).
+  converting it to the common site schema. Present for all 9 states now
+  (`tx` was the last holdout — its data used to be carried over from an
+  earlier one-off extraction; now reads DataCenterScreener's own current
+  pipeline output directly, same as every other state).
 - `scripts/merge_sites.py <state> [<state> ...]` — folds one or more
   `data/sites_<state>.json` files into the combined `data/sites.json`,
   replacing (not appending) that state's existing entries.

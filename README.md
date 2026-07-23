@@ -29,6 +29,14 @@ individual sites stay visually distinct instead of merging into overlapping
 blobs, and a scale bar (bottom-right) shows real distance at the current
 zoom level.
 
+> **Data quality warning:** This map aggregates output from 9 independent
+> screening pipelines, each of which still has a meaningfully high chance of
+> errors — misclassified sites, stale or incorrect retirement status, and
+> silent degradation from dead source endpoints (see each state repo's
+> README for specifics). Treat sites shown here as a screened shortlist, not
+> a verified answer: manually check retirement status, ownership, parcel
+> size, and site details before acting on any listed candidate.
+
 ## Picking Up This Project
 
 Read this first if you're new here — it explains the whole project family,

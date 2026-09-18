@@ -15,11 +15,11 @@ across all states covered by the DCScreener pipeline family:
 `index.html` is a single self-contained page — a custom SVG-based US map (no
 external map tiles or network requests) with a candidate-site table view,
 per-site info panel, state-colored markers, real river geometry, and major
-population centers for orientation. It currently covers 441 sites across all
-9 states (AL 148, KY 61, TX 60, VA 54, TN 36, LA 41, MS 20, AR 20, ND 1) — the
-project's originally-fixed 8-slot categorical palette has been stretched to 9
-as a stopgap (see "Color palette" below for why this is a real design tension,
-not a solved problem). (Site counts change whenever a state repo's pipeline
+population centers for orientation. It currently covers 463 sites across all
+10 states (AL 148, KY 61, TX 60, VA 54, TN 36, LA 41, WV 22, MS 20, AR 20,
+ND 1) — the project's originally-fixed 8-slot categorical palette has been
+stretched to 10 as a stopgap (see "Color palette" below for why this is a
+real design tension, not a solved problem). (Site counts change whenever a state repo's pipeline
 is re-run and its data re-extracted here — see "Picking Up This Project"
 below for how that flow works.)
 
@@ -29,7 +29,7 @@ individual sites stay visually distinct instead of merging into overlapping
 blobs, and a scale bar (bottom-right) shows real distance at the current
 zoom level.
 
-> **Data quality warning:** This map aggregates output from 9 independent
+> **Data quality warning:** This map aggregates output from 10 independent
 > screening pipelines, each of which still has a meaningfully high chance of
 > errors — misclassified sites, stale or incorrect retirement status, and
 > silent degradation from dead source endpoints (see each state repo's
@@ -53,14 +53,14 @@ grid/gas infrastructure that could host on-site generation for a large
 compute load. Each state's pipeline is its own GitHub repo with its own
 multi-stage data pipeline; this repo's only job is to pull each state's
 *already-ranked* CSV output, convert it to a shared schema, and render all
-9 states together on one interactive map.
+10 states together on one interactive map.
 
 The live map is published as a Claude Artifact — republishing it after a
 data refresh is a manual step (see below), not automatic. It's private by
 default; the owner needs to share it from the Artifact page in Claude if
 someone outside the account needs the link.
 
-### The 9 state repos
+### The 10 state repos
 
 | State | Repo | Sites (as of last refresh) |
 |---|---|---|
@@ -73,6 +73,7 @@ someone outside the account needs the link.
 | Alabama | [AlabamaDCScreener](https://github.com/Arthurfok1/AlabamaDCScreener) | 148 |
 | Texas | [DataCenterScreener](https://github.com/Arthurfok1/DataCenterScreener) | 60 |
 | Arkansas | [ArkansasDCScreener](https://github.com/Arthurfok1/ArkansasDCScreener) | 20 |
+| West Virginia | [WestVirginiaDCScreener](https://github.com/peyton1754/WestVirginiaDCScreener) | 22 |
 
 Forked from WestVirginiaDCScreener (the newest, bug-fixed template at the
 time), not from Tennessee like the older states — see that repo's own README
@@ -137,6 +138,15 @@ python3 scripts/gen_map_html.py
 `merge_sites.py` also accepts multiple states in one call (e.g.
 `python3 scripts/merge_sites.py va la tn`) if you're refreshing several at
 once.
+
+**West Virginia is the exception: its refresh is automated.** The
+`.github/workflows/refresh-wv.yml` workflow re-extracts and re-merges WV on
+a monthly schedule, on manual dispatch, and on a `wv-data-updated`
+repository dispatch fired by WestVirginiaDCScreener's own scheduled pipeline
+run (`.github/workflows/refresh-data.yml` over there). The other nine states
+remain manual because their pipeline repos live under a different GitHub
+account. Republishing the live Artifact after a refresh is still manual for
+all states.
 
 Open the regenerated `index.html` locally (`python3 -m http.server` in this
 directory, then visit it in a browser) and sanity-check the state's
@@ -332,11 +342,16 @@ case) and found two things:
    is why Arkansas's entry sits at the *end* of `STATE_META`'s dict order,
    away from North Dakota.
 
-**This is a stopgap, not a resolved problem.** WestVirginiaDCScreener already
-exists as a 9th pipeline repo waiting to be wired in — adding it as a 10th
-map color will make an already-strained palette worse. Before that happens,
-decide whether to (a) keep stretching categorical hues and accept the
+**This is a stopgap, not a resolved problem.** West Virginia has since been
+wired in as the 10th color, following the Arkansas precedent rather than
+resolving the underlying tension: its teal was checked by eye against the
+states it actually borders on the map (Virginia's orange, Kentucky's amber)
+and placed at the end of `STATE_META`'s dict order away from Mississippi's
+green-aqua, but it was NOT validated against the full 10-state set with the
+`dataviz` pairwise validator. The decision the previous version of this
+section asked for — (a) keep stretching categorical hues and accept the
 validator's warnings, or (b) switch to the composite encoding the `dataviz`
 skill actually recommends for >8 categories (e.g. shape or pattern on top of
-a smaller reused hue set). Don't add an 11th, 12th, etc. color the same way
-this one was added without revisiting that decision first.
+a smaller reused hue set) — is still open, and the palette debt is now one
+state deeper. Do not add an 11th color the same way without making that
+decision first.

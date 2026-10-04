@@ -1,0 +1,57 @@
+name: Tests
+
+# Runs tests/ on every push and pull request.
+#
+# WHY THIS IS SEPARATE from refresh-wv.yml: that workflow also runs the suite,
+# but only on its own triggers (repository_dispatch, monthly cron, manual
+# dispatch). None of those fire on a pull request, so until this file existed a
+# PR that broke the provenance contract would reach main without the suite ever
+# running. The guard was real but unenforced on the one path changes actually
+# arrive by.
+#
+# This job is deliberately cheap: it installs three packages and runs a suite
+# that takes well under a second. It downloads no source data and touches no
+# upstream repo, so it stays fast enough to run on every push.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install pandas numpy
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python3 -m pytest tests/ -q
+
+      # The shipped data must stay consistent with the shipped provenance even
+      # when no extractor ran: a hand-edit to data/sites.json that forgets
+      # data/provenance.json is exactly the drift the contract exists to catch,
+      # and build_map.py is what refuses it.
+      - name: Verify the committed map rebuilds from committed data
+        run: |
+          python3 scripts/build_map.py
+          python3 scripts/gen_map_html.py
+          git diff --exit-code -- data/map_payload.json index.html \
+            || { echo "::error::index.html or map_payload.json is stale. Re-run scripts/build_map.py and scripts/gen_map_html.py and commit the result."; exit 1; }

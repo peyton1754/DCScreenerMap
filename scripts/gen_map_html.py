@@ -95,6 +95,20 @@ HTML = """<meta charset="utf-8">
   .info-panel h3 { font-size: 12px; color: #999; margin: 12px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
   .info-panel .placeholder { color: #888; margin: 8px 0; }
   .info-panel .sub { color: #666; font-size: 11px; }
+
+  /* Data vintage. Rendered statically from data/provenance.json at build time,
+     so it cannot silently disagree with the data or fail at runtime. */
+  .vintage { margin-top: 12px; padding-top: 10px; border-top: 1px solid #2a2a2a; }
+  .vintage .hd { color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .vintage .warn { color: #e0a33a; font-size: 11px; line-height: 1.45; margin-bottom: 8px; }
+  .vintage table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .vintage td { padding: 2px 0; border-bottom: 1px solid #1a1a1a; }
+  .vintage td.st { color: #e0e0e0; width: 30px; }
+  .vintage td.dt { color: #888; text-align: right; }
+  .vintage .frozen td.st { color: #9a9a9a; }
+  .vintage .tag { font-size: 9.5px; padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: 1px; }
+  .vintage .tag-live { background: #14402f; color: #4fc08d; }
+  .vintage .tag-frozen { background: #3a2f14; color: #d8a33a; }
   .field { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #1a1a1a; gap: 10px; }
   .field .label { color: #888; flex: none; }
   .field .value { color: #e0e0e0; text-align: right; }
@@ -223,6 +237,7 @@ HTML = """<meta charset="utf-8">
       <h2>Multi-State Site Screener</h2>
       <p class="placeholder">Click a site to view details.</p>
       <p class="sub">__SITE_COUNT__ scored candidates &bull; __STATE_COUNT__ state pipelines</p>
+__VINTAGE_BANNER__
       <p class="sub"><a href="https://github.com/Arthurfok1/DCScreenerMap" target="_blank" rel="noopener" style="color:#5b9dd9;">Source &amp; data on GitHub &#8594;</a></p>
     </div>
 
@@ -1037,7 +1052,68 @@ updateDotDodge();
 
 n_sites = len(payload['sites'])
 n_states = len(payload['states'])
-html = HTML.replace('__DATA_JSON__', data_json).replace('__SITE_COUNT__', str(n_sites)).replace('__STATE_COUNT__', str(n_states))
+
+
+def vintage_banner(prov, total_sites):
+    """Render the data-vintage block as static HTML.
+
+    Built at build time rather than from JS at runtime, so the page states its
+    own vintage even if scripting fails, and the banner cannot disagree with
+    the data it shipped beside.
+
+    A frozen state shows its upper bound, prefixed so nobody reads a bound as
+    the actual date. A live state shows the upstream data's own date, never the
+    date this repo last copied it.
+    """
+    if not prov:
+        # Never silently omit the banner. A page with no provenance should say
+        # so, because an absent banner reads as "nothing to report".
+        return ('    <div class="vintage"><div class="hd">Data vintage</div>'
+                '<div class="warn">No provenance recorded. Treat every site on '
+                'this page as undated.</div></div>')
+
+    frozen = {k: v for k, v in prov.items() if v['status'] == 'frozen'}
+    n_frozen = sum(v['sites'] for v in frozen.values())
+    pct = round(100.0 * n_frozen / total_sites) if total_sites else 0
+
+    rows = []
+    # Live states first, then frozen, each block newest-data-first.
+    live = sorted((k for k, v in prov.items() if v['status'] == 'live'),
+                  key=lambda k: prov[k]['as_of'], reverse=True)
+    frz = sorted(frozen, key=lambda k: frozen[k]['extracted_on_or_before'],
+                 reverse=True)
+    for st in live:
+        rows.append(
+            f'<tr><td class="st">{st}<span class="tag tag-live">live</span></td>'
+            f'<td class="dt">{prov[st]["as_of"]}</td></tr>')
+    for st in frz:
+        rows.append(
+            f'<tr class="frozen"><td class="st">{st}'
+            f'<span class="tag tag-frozen">frozen</span></td>'
+            f'<td class="dt">on or before {frozen[st]["extracted_on_or_before"]}</td></tr>')
+
+    warn = ''
+    if n_frozen:
+        oldest = min(v['extracted_on_or_before'] for v in frozen.values())
+        warn = (f'<div class="warn">{n_frozen} of {total_sites} sites '
+                f'({pct}%) come from {len(frozen)} pipelines that can no longer '
+                f'be re-run, so their data is frozen and their true screening '
+                f'date is unrecorded. All of them were last refreshed on or '
+                f'before {oldest}.</div>')
+
+    return ('    <div class="vintage">\n'
+            '      <div class="hd">Data vintage</div>\n'
+            f'      {warn}\n'
+            '      <table>' + ''.join(rows) + '</table>\n'
+            '    </div>')
+
+
+banner = vintage_banner(payload.get('provenance', {}), n_sites)
+html = (HTML.replace('__DATA_JSON__', data_json)
+            .replace('__SITE_COUNT__', str(n_sites))
+            .replace('__STATE_COUNT__', str(n_states))
+            .replace('__VINTAGE_BANNER__', banner))
+assert '__VINTAGE_BANNER__' not in html, 'vintage banner placeholder was not replaced'
 
 out_path = os.path.join(REPO_ROOT, 'index.html')
 with open(out_path, 'w') as f:

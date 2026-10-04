@@ -45,28 +45,38 @@ jobs:
           repository: peyton1754/WestVirginiaDCScreener
           token: ${{ secrets.WV_READ_TOKEN || github.token }}
           path: wv-screener
+          # Full history: provenance.upstream_data_date reads the last commit
+          # that changed outputs/ to date the DATA. A shallow checkout answers
+          # from the single commit it has and silently reports the wrong date.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install pandas numpy
+        run: |
+          pip install pandas numpy
+          pip install -r requirements-dev.txt
 
       - name: Extract, merge, rebuild
         env:
           WV_SCREENER_CSV: wv-screener/outputs/csv/top_candidates_wv.csv
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           python3 scripts/extract_wv.py
           python3 scripts/merge_sites.py wv
           python3 scripts/build_map.py
           python3 scripts/gen_map_html.py
 
+      - name: Verify provenance
+        run: python3 -m pytest tests/ -q
+
       - name: Commit refreshed map
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/sites_wv.json data/sites.json data/map_payload.json index.html
+          git add data/sites_wv.json data/sites.json data/map_payload.json data/provenance.json index.html
           if git diff --cached --quiet; then
             echo "Map unchanged; nothing to commit."
           else

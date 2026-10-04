@@ -1,0 +1,75 @@
+name: Refresh WV map data
+
+# Pulls the latest WV screening outputs from peyton1754/WestVirginiaDCScreener,
+# re-extracts them into data/sites_wv.json, merges into data/sites.json, and
+# regenerates map_payload.json + index.html. Commits only when something
+# actually changed.
+#
+# Triggers:
+#   - repository_dispatch "wv-data-updated": fired by the WV repo's own
+#     refresh workflow right after it commits new outputs (requires the
+#     DCSCREENERMAP_DISPATCH_TOKEN secret over there).
+#   - monthly cron: safety net so the map converges even if the dispatch
+#     hook is not configured. Runs a day after the WV repo's monthly run.
+#   - workflow_dispatch: manual runs from the Actions tab.
+#
+# NOTE: schedule/dispatch triggers only fire on the default branch, so this
+# activates once merged. If WestVirginiaDCScreener is private, add a repo
+# secret WV_READ_TOKEN (fine-grained PAT with contents:read on that repo);
+# for a public repo the default token is enough.
+
+on:
+  repository_dispatch:
+    types: [wv-data-updated]
+  schedule:
+    - cron: '17 6 2 * *' # 06:17 UTC on the 2nd of each month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-wv
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out WestVirginiaDCScreener
+        uses: actions/checkout@v4
+        with:
+          repository: peyton1754/WestVirginiaDCScreener
+          token: ${{ secrets.WV_READ_TOKEN || github.token }}
+          path: wv-screener
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas numpy
+
+      - name: Extract, merge, rebuild
+        env:
+          WV_SCREENER_CSV: wv-screener/outputs/csv/top_candidates_wv.csv
+        run: |
+          python3 scripts/extract_wv.py
+          python3 scripts/merge_sites.py wv
+          python3 scripts/build_map.py
+          python3 scripts/gen_map_html.py
+
+      - name: Commit refreshed map
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/sites_wv.json data/sites.json data/map_payload.json index.html
+          if git diff --cached --quiet; then
+            echo "Map unchanged; nothing to commit."
+          else
+            git commit -m "Refresh WV sites in combined map (scheduled merge)"
+            git push
+          fi

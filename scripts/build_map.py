@@ -16,6 +16,11 @@ STATE_META = {
     'LA': {'name': 'Louisiana',    'bbox': [-94.04, 28.86, -88.75, 33.02], 'light': '#e87ba4', 'dark': '#d55181'},
     'VA': {'name': 'Virginia',     'bbox': [-83.68, 36.54, -75.17, 39.47], 'light': '#eb6834', 'dark': '#d95926'},
     'AR': {'name': 'Arkansas',     'bbox': [-94.6162, 33.0021, -89.7308, 36.5019], 'light': '#8a3f10', 'dark': '#a04f16'},
+    # WV follows the Arkansas precedent (see README "Color palette"): a 10th
+    # hue checked against its actual map neighbors (VA orange, KY amber),
+    # kept at the end of dict order, away from MS's green-aqua. Still a
+    # stopgap — do not add an 11th color without revisiting that section.
+    'WV': {'name': 'West Virginia', 'bbox': [-82.6447, 37.2015, -77.7190, 40.6388], 'light': '#0f9b93', 'dark': '#26c6b9'},
 }
 
 payload = {'sites': sites, 'states': STATE_META}

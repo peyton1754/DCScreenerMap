@@ -1,7 +1,10 @@
+import datetime
 import json
 import os
 import sys
 import pandas as pd
+
+import provenance as prov_mod
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -63,6 +66,37 @@ for _, r in df.iterrows():
 with open(os.path.join(REPO_ROOT, 'data', 'sites_wv.json'), 'w') as f:
     json.dump(sites, f)
 
+# Record provenance in the same run that writes the data, so the two cannot
+# drift and nobody has to remember a second step. merge_sites.py refuses to
+# merge a state whose entry is missing or incomplete.
+#
+# The source commit is read from the upstream checkout the CSV came out of,
+# which is the WV repo cloned beside this one (locally) or into wv-screener/
+# (in the refresh workflow). If the CSV is not inside a git checkout the commit
+# comes back None and record_live raises rather than writing a hole.
+source_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(CSV_PATH))))
+source_commit = prov_mod.git_commit(source_dir)
+
+# as_of is the DATA's date, not today's. It comes from the last upstream commit
+# that changed outputs/, so re-running this extractor against an unchanged
+# upstream does not reset the clock and make old screening data read as fresh.
+as_of = prov_mod.upstream_data_date(source_dir, 'outputs')
+pipeline_run = os.environ.get('GITHUB_RUN_URL') or os.environ.get('WV_PIPELINE_RUN') \
+    or f"local run {datetime.date.today().isoformat()}"
+
+entry = prov_mod.record_live(
+    state='WV',
+    source_repo='peyton1754/WestVirginiaDCScreener',
+    source_commit=source_commit,
+    as_of=as_of,
+    extracted_on=datetime.date.today().isoformat(),
+    pipeline_run=pipeline_run,
+    n_sites=len(sites),
+)
+
 print(f"Extracted {len(sites)} WV sites from {CSV_PATH}")
+print(f"Provenance: data as_of {entry['as_of']} (upstream commit "
+      f"{entry['source_commit'][:12]}), extracted_on {entry['extracted_on']}, "
+      f"run {entry['pipeline_run']}")
 print(json.dumps(sites[0], indent=2))
 print(json.dumps(sites[-1], indent=2))

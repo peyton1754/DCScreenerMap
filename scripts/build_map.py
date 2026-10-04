@@ -1,5 +1,8 @@
 import json
 import os
+import sys
+
+import provenance as prov_mod
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -23,7 +26,20 @@ STATE_META = {
     'WV': {'name': 'West Virginia', 'bbox': [-82.6447, 37.2015, -77.7190, 40.6388], 'light': '#0f9b93', 'dark': '#26c6b9'},
 }
 
-payload = {'sites': sites, 'states': STATE_META}
+# Provenance travels with the payload so the page can state its own data
+# vintage. gen_map_html.py renders it into a static banner; nothing reads it at
+# runtime. Contract and rationale: scripts/provenance.py.
+provenance = prov_mod.load()
+prov_problems = prov_mod.validate(provenance, sorted({s['state'] for s in sites}))
+if prov_problems:
+    print('Refusing to build: provenance is incomplete.', file=sys.stderr)
+    for p in prov_problems:
+        print(f'  {p}', file=sys.stderr)
+    sys.exit(2)
+
+payload = {'sites': sites, 'states': STATE_META, 'provenance': provenance}
 with open(os.path.join(REPO_ROOT, 'data', 'map_payload.json'), 'w') as f:
     json.dump(payload, f)
 print('rows:', len(sites))
+n_frozen = sum(e['sites'] for e in provenance.values() if e['status'] == 'frozen')
+print(f'provenance: {len(provenance)} states, {n_frozen} of {len(sites)} sites frozen')

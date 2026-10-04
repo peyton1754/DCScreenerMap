@@ -1,0 +1,92 @@
+{
+  "AL": {
+    "as_of": null,
+    "bound_commit": "acd4f9b",
+    "extracted_on_or_before": "2026-07-22",
+    "note": "Upstream repo unreachable by anonymous git as of 2026-10-04, probed alongside Arthurfok1/DCScreenerMap as a positive control, which was reachable. scripts/extract_al.py also reads a hardcoded path inside the original author's ephemeral session scratchpad, so this state cannot be re-extracted by anyone on this account. The upstream data's own date is unknown and as_of is deliberately null; extracted_on_or_before is an upper bound from the last commit in THIS repo that changed the file, which for eight of the nine was acd4f9b 'Refresh all 8 states with TRI_CLOSED_FLAG demoted to weak signal'.",
+    "sites": 148,
+    "source_repo": "Arthurfok1/AlabamaDCScreener",
+    "status": "frozen"
+  },
+  "AR": {
+    "as_of": null,
+    "bound_commit": "acd4f9b",
+    "extracted_on_or_before": "2026-07-22",
+    "note": "Upstream repo unreachable by anonymous git as of 2026-10-04, probed alongside Arthurfok1/DCScreenerMap as a positive control, which was reachable. scripts/extract_ar.py also reads a hardcoded path inside the original author's ephemeral session scratchpad, so this state cannot be re-extracted by anyone on this account. The upstream data's own date is unknown and as_of is deliberately null; extracted_on_or_before is an upper bound from the last commit in THIS repo that changed the file, which for eight of the nine was acd4f9b 'Refresh all 8 states with TRI_CLOSED_FLAG demoted to weak signal'.",
+    "sites": 20,
+    "source_repo": "Arthurfok1/ArkansasDCScreener",
+    "status": "frozen"
+  },
+  "KY": {
+    "as_of": null,
+    "bound_commit": "acd4f9b",
+    "extracted_on_or_before": "2026-07-22",
+    "note": "Upstream repo unreachable by anonymous git as of 2026-10-04, probed alongside Arthurfok1/DCScreenerMap as a positive control, which was reachable. scripts/extract_ky.py also reads a hardcoded path inside the original author's ephemeral session scratchpad, so this state cannot be re-extracted by anyone on this account. The upstream data's own date is unknown and as_of is deliberately null; extracted_on_or_before is an upper bound from the last commit in THIS repo that changed the file, which for eight of the nine was acd4f9b 'Refresh all 8 states with TRI_CLOSED_FLAG demoted to weak signal'.",
+    "sites": 61,
+    "source_repo": "Arthurfok1/KentuckyDCScreener",
+    "status": "frozen"
+  },
+  "LA": {
+    "as_of": null,
+    "bound_commit": "acd4f9b",
+    "extracted_on_or_before": "2026-07-22",
+    "note": "Upstream repo unreachable by anonymous git as of 2026-10-04, probed alongside Arthurfok1/DCScreenerMap as a positive control, which was reachable. scripts/extract_la.py also reads a hardcoded path inside the original author's ephemeral session scratchpad, so this state cannot be re-extracted by anyone on this account. The upstream data's own date is unknown and as_of is deliberately null; extracted_on_or_before is an upper bound from the last commit in THIS repo that changed the file, which for eight of the nine was acd4f9b 'Refresh all 8 states with TRI_CLOSED_FLAG demoted to weak signal'.",
+    "sites": 41,
+    "source_repo": "Arthurfok1/LouisianaDCScreener",
+    "status": "frozen"
+  },
+  "MS": {
+    "as_of": null,
+    "bound_commit": "acd4f9b",
+    "extracted_on_or_before": "2026-07-22",
+    "note": "Upstream repo unreachable by anonymous git as of 2026-10-04, probed alongside Arthurfok1/DCScreenerMap as a positive control, which was reachable. scripts/extract_ms.py also reads a hardcoded path inside the original author's ephemeral session scratchpad, so this state cannot be re-extracted by anyone on this account. The upstream data's own date is unknown and as_of is deliberately null; extracted_on_or_before is an upper bound from the last commit in THIS repo that changed the file, which for eight of the nine was acd4f9b 'Refresh all 8 states with TRI_CLOSED_FLAG demoted to weak signal'.",
+    "sites": 20,
+    "source_repo": "Arthurfok1/MississippiDCScreener",
+    "status": "frozen"
+  },
+  "ND": {
+    "as_of": null,
+    "bound_commit": "acd4f9b",
+    "extracted_on_or_before": "2026-07-22",
+    "note": "Upstream repo unreachable by anonymous git as of 2026-10-04, probed alongside Arthurfok1/DCScreenerMap as a positive control, which was reachable. scripts/extract_nd.py also reads a hardcoded path inside the original author's ephemeral session scratchpad, so this state cannot be re-extracted by anyone on this account. The upstream data's own date is unknown and as_of is deliberately null; extracted_on_or_before is an upper bound from the last commit in THIS repo that changed the file, which for eight of the nine was acd4f9b 'Refresh all 8 states with TRI_CLOSED_FLAG demoted to weak signal'.",
+    "sites": 1,
+    "source_repo": "Arthurfok1/NorthDakotaDCScreener",
+    "status": "frozen"
+  },
+  "TN": {
+    "as_of": null,
+    "bound_commit": "acd4f9b",
+    "extracted_on_or_before": "2026-07-22",
+    "note": "Upstream repo unreachable by anonymous git as of 2026-10-04, probed alongside Arthurfok1/DCScreenerMap as a positive control, which was reachable. scripts/extract_tn.py also reads a hardcoded path inside the original author's ephemeral session scratchpad, so this state cannot be re-extracted by anyone on this account. The upstream data's own date is unknown and as_of is deliberately null; extracted_on_or_before is an upper bound from the last commit in THIS repo that changed the file, which for eight of the nine was acd4f9b 'Refresh all 8 states with TRI_CLOSED_FLAG demoted to weak signal'.",
+    "sites": 36,
+    "source_repo": "Arthurfok1/TennesseeDCScreener",
+    "status": "frozen"
+  },
+  "TX": {
+    "as_of": null,
+    "bound_commit": "844fd0e",
+    "extracted_on_or_before": "2026-07-22",
+    "note": "Upstream repo unreachable by anonymous git as of 2026-10-04, probed alongside Arthurfok1/DCScreenerMap as a positive control, which was reachable. scripts/extract_tx.py also reads a hardcoded path inside the original author's ephemeral session scratchpad, so this state cannot be re-extracted by anyone on this account. The upstream data's own date is unknown and as_of is deliberately null; extracted_on_or_before is an upper bound from the last commit in THIS repo that changed the file, which for eight of the nine was acd4f9b 'Refresh all 8 states with TRI_CLOSED_FLAG demoted to weak signal'.",
+    "sites": 60,
+    "source_repo": "Arthurfok1/DataCenterScreener",
+    "status": "frozen"
+  },
+  "VA": {
+    "as_of": null,
+    "bound_commit": "acd4f9b",
+    "extracted_on_or_before": "2026-07-22",
+    "note": "Upstream repo unreachable by anonymous git as of 2026-10-04, probed alongside Arthurfok1/DCScreenerMap as a positive control, which was reachable. scripts/extract_va.py also reads a hardcoded path inside the original author's ephemeral session scratchpad, so this state cannot be re-extracted by anyone on this account. The upstream data's own date is unknown and as_of is deliberately null; extracted_on_or_before is an upper bound from the last commit in THIS repo that changed the file, which for eight of the nine was acd4f9b 'Refresh all 8 states with TRI_CLOSED_FLAG demoted to weak signal'.",
+    "sites": 54,
+    "source_repo": "Arthurfok1/VirginiaDCScreener",
+    "status": "frozen"
+  },
+  "WV": {
+    "as_of": "2026-07-16",
+    "extracted_on": "2026-10-04",
+    "pipeline_run": "manual: Phase 0 provenance build, 2026-10-04",
+    "sites": 22,
+    "source_commit": "39fa534d9e59f7cfbafb039af977fefe1818c5af",
+    "source_repo": "peyton1754/WestVirginiaDCScreener",
+    "status": "live"
+  }
+}

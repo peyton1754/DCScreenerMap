@@ -1,0 +1,4 @@
+# Dev and CI only. The refresh workflow installs these to run tests/ before it
+# commits a refreshed map, so the provenance guard is enforced rather than
+# merely available.
+pytest
